@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weave Chat: a recorded run you can verify</title>
+<meta name="description" content="A recording of the real Weave Chat gateway, replayed in your browser. Every signature on this page is checked by your own browser as you watch.">
+<style>
+  :root { --bg:#05060a; --ink:#0b0d13; --line:#23262e; --fg:#e4e6d8; --dim:#9aa08c; --warm:#f2b46b; --ok:#b9d27c; --bad:#e2694a; --cool:#9fb4c8;
+          --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", monospace; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 var(--mono); }
+  a { color:var(--warm); text-underline-offset:3px; }
+  button, input { font:inherit; }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+  .page { display:grid; height:100vh; height:100dvh; grid-template-rows:auto minmax(0,1fr) auto; }
+  header { padding:14px 18px 10px; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 22px; border-bottom:1px solid var(--line); min-width:0; }
+  header > * { max-width:100%; }
+  header h1 { margin:0; font-size:15px; font-weight:600; letter-spacing:.04em; }
+  header p { margin:0; color:var(--dim); font-size:12px; }
+  .real { color:var(--warm); }
+
+  main { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(320px,.9fr); min-height:0; overflow:hidden; }
+  #stage { display:grid; grid-template-rows:minmax(0,1fr) auto; min-height:0; border-right:1px solid var(--line); }
+  #pic { position:relative; min-height:0; overflow:hidden; }
+  #c { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #readout { border-top:1px solid var(--line); padding:8px 16px 10px; }
+  .tag { position:absolute; transform:translate(-50%,-50%); font-size:11px; line-height:1.25; text-align:center; white-space:nowrap; pointer-events:none;
+         text-shadow:0 1px 3px #000, 0 0 2px #000; color:var(--dim); }
+  .tag b { display:block; color:var(--fg); font-weight:600; letter-spacing:.06em; }
+  .tag.on b { color:var(--warm); }
+  .tag .n { color:var(--warm); }
+  .tag.down b { color:var(--bad); }
+  #say { margin:4px 0 0; font-size:12.5px; }
+  #say .who { color:var(--warm); }
+  #counts { margin:0; font-size:11.5px; color:var(--dim); display:flex; flex-wrap:wrap; gap:2px 16px; }
+  #counts b { color:var(--fg); font-weight:600; }
+
+  #wire { padding:14px 18px; overflow:auto; min-height:0; min-width:0; }
+  #wire h2 { margin:0 0 2px; font-size:13px; letter-spacing:.04em; font-weight:600; }
+  #wire .claim { margin:0 0 12px; color:var(--dim); font-size:12.5px; max-width:62ch; }
+  ol.steps { list-style:none; margin:0 0 14px; padding:0; counter-reset:s; }
+  ol.steps li { counter-increment:s; display:grid; grid-template-columns:2.2em 5.5em 1fr; gap:0 6px; padding:3px 0; color:var(--dim); font-size:12.5px; border-left:2px solid transparent; padding-left:8px; margin-left:-10px; }
+  ol.steps li::before { content:counter(s, decimal-leading-zero); color:#5d6256; }
+  ol.steps li.now { color:var(--fg); border-left-color:var(--warm); }
+  ol.steps li.later { opacity:.38; }
+  ol.steps li .who { color:var(--warm); }
+  .envelope { border-top:1px solid var(--line); padding-top:10px; }
+  .envelope h3 { margin:0 0 6px; font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--dim); }
+  pre { margin:0; white-space:pre-wrap; word-break:break-word; font:12px/1.5 var(--mono); }
+  pre .k { color:var(--dim); } pre .sig { color:#7d8473; }
+  .edit { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin:8px 0 6px; }
+  .edit label { color:var(--dim); font-size:12px; }
+  .edit input { flex:1 1 240px; min-width:0; background:var(--ink); color:var(--fg); border:1px solid var(--line); border-radius:3px; padding:6px 8px; }
+  .edit input:focus-visible { outline:2px solid var(--warm); outline-offset:1px; border-color:var(--warm); }
+  .verdict { margin:6px 0 0; font-size:12.5px; }
+  .verdict.ok { color:var(--ok); } .verdict.bad { color:var(--bad); } .verdict.na { color:var(--dim); }
+  dl.facts { margin:8px 0 0; display:grid; grid-template-columns:max-content 1fr; gap:2px 12px; font-size:12.5px; }
+  dl.facts dt { color:var(--dim); } dl.facts dd { margin:0; min-width:0; overflow-wrap:anywhere; }
+  details { margin-top:12px; border-top:1px solid var(--line); padding-top:8px; }
+  summary { cursor:pointer; color:var(--dim); font-size:12px; }
+  summary:focus-visible { outline:2px solid var(--warm); outline-offset:2px; }
+  details pre { margin-top:8px; color:#c9cdbd; font-size:11.5px; max-height:300px; overflow:auto; background:var(--ink); padding:8px 10px; border:1px solid var(--line); border-radius:3px; }
+  details .src { color:var(--dim); font-size:11.5px; margin:8px 0 0; }
+
+  footer { border-top:1px solid var(--line); padding:10px 18px 12px; display:grid; gap:8px; }
+  .scenes { display:flex; flex-wrap:wrap; gap:6px; min-width:0; }
+  .bar { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
+  button { background:#0d0f14; color:var(--fg); border:1px solid #2a2e36; border-radius:4px; padding:6px 10px; font-size:12px; cursor:pointer; }
+  button:hover { border-color:var(--warm); }
+  button:focus-visible { outline:2px solid var(--warm); outline-offset:2px; }
+  button[aria-pressed="true"], button[aria-current="true"] { border-color:var(--warm); color:var(--warm); }
+  button:disabled { opacity:.4; cursor:default; border-color:#2a2e36; }
+  #tally, #inv { font-size:12px; color:var(--dim); margin:0; }
+  #tally b, #inv b { color:var(--fg); font-weight:600; }
+  #inv .bad { color:var(--bad); }
+  .fine { font-size:11px; color:#7d8473; margin:0; max-width:110ch; }
+
+  @media (max-width: 860px) {
+    .page { height:auto; min-height:100vh; }
+    main { grid-template-columns:minmax(0,1fr); overflow:visible; }
+    footer { grid-template-columns:minmax(0,1fr); }
+    header p { min-width:0; }
+    #stage { border-right:0; border-bottom:1px solid var(--line); }
+    #pic { height:44vh; }
+    .scenes { flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; }
+    .scenes button { white-space:nowrap; flex:none; }
+    #wire { overflow:visible; }
+    ol.steps li { grid-template-columns:2.2em 4.6em 1fr; }
+    footer { position:sticky; bottom:0; background:var(--bg); }
+    .fine { display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Weave Chat</h1>
+    <p>Chat for a team whose members are people and AI agents. <span class="real">This is a recording of the real gateway; the verification is live, in your browser.</span></p>
+    <p>recorded <span id="when"></span></p>
+  </header>
+
+  <main>
+    <section id="stage" aria-label="The system">
+      <div id="pic"><canvas id="c" role="img" aria-label="The system drawn in text characters: three members at the top, the gateway and its ordered event record in the middle, the outbox beside it, and the message bus along the bottom. The readout below the picture says what is happening at each step."></canvas>
+      <div id="tags" aria-hidden="true"></div></div>
+      <div id="readout"><p id="counts"></p>
+      <p id="say" aria-live="polite"></p></div>
+    </section>
+    <section id="wire" aria-label="The wire"></section>
+  </main>
+
+  <footer>
+    <div class="scenes" role="group" aria-label="Scenes" id="scenes"></div>
+    <div class="bar">
+      <button id="prev" type="button">◀ step</button>
+      <button id="next" type="button">step ▶</button>
+      <button id="play" type="button" aria-pressed="false">play</button>
+      <button id="all" type="button">verify every signature</button>
+      <button id="lie" type="button">test the checker</button>
+      <p id="tally" aria-live="polite"></p>
+    </div>
+    <div class="bar"><p id="inv"></p>
+    </div>
+    <p class="fine">Every cell of the picture is a text character: what a thing is made of picks the glyph, the light on it picks how heavy the glyph is. The run was recorded once from the built gateway against a real message bus and is replayed here; nothing is contacted. Arrow keys step; space plays.</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const TRACE = {"recorded_at":"2026-10-02T15:29:45.119Z","gateway_public_key_b64u":"StX8TEiEERLdQ1djJciWijzw48hEwiHnm9Y021mYVaE","key_id":"4afb187a5f7e19ed","signing":"Ed25519 over the JCS canonical JSON of the envelope without its sig field","scenes":[{"id":"signed-post","title":"A post becomes a signed, ordered event","claim":"The gateway signs every event with Ed25519 over canonical JSON. Anyone holding the gateway public key can check it.","test":"REG-NATS-01, AT-03","steps":[{"who":"ada","what":"posts in #lab-notes over HTTPS","state":{"messages":1,"events":1,"outbox":1,"published":0},"envelope":{"v":1,"id":"01M3YKRMD6M1WG64PTWM00KAC1","type":"message.created","ts":"2026-10-02T15:29:43.846Z","gateway_seq":1,"actor":"ada","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRMD5BMM62KB8DKCV16NA","body_md":"Reactor two is back to temperature.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"SlaUS2oFrBD1KhdevJ1Dpx5TJY-Gfu3O3CveT9im-bRdNUc1_W9iO2aKqsuMiy841m2xBo1Nk5FiPohyJO03AA"}},"subject":"chat.v1.evt.c_01DEMOPUBLIC000000000000000"},{"who":"gateway","what":"commits the message, the event and an outbox row in one transaction","state":{"messages":1,"events":1,"outbox":1,"published":0},"verified":true},{"who":"gateway","what":"publishes the event to the bus and records its sequence","state":{"messages":1,"events":1,"outbox":0,"published":1},"nats_seq":1},{"who":"scout","what":"receives the event and verifies the signature against the pinned key","state":{"messages":1,"events":1,"outbox":0,"published":1},"verified":true}]},{"id":"bus-outage","title":"The message bus goes down and comes back","claim":"An acknowledged write is never lost. Its event waits in the outbox and is published, in order, when the bus returns.","test":"AT-60, AT-61","steps":[{"who":"operator","what":"stops the message bus","state":{"messages":1,"events":1,"outbox":0,"published":1}},{"who":"ada","what":"posts while the bus is down: acknowledged","state":{"messages":2,"events":2,"outbox":1,"published":1},"envelope":{"v":1,"id":"01M3YKRMEYKW1J8A2JFE5V842K","type":"message.created","ts":"2026-10-02T15:29:43.902Z","gateway_seq":2,"actor":"ada","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRMEXFB9Y1YKASN1RT8AH","body_md":"Sample 14 looks contaminated.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"BKuV98WSjzCARJfW2C1oE_PCcEYUfxAq30KV18H0Jv739A8FXjPBeb3hNCXHp0G6bx5izXMQxZuYiHWoKyfFBw"}}},{"who":"scout","what":"posts while the bus is down: acknowledged","state":{"messages":3,"events":3,"outbox":2,"published":1},"envelope":{"v":1,"id":"01M3YKRMEZCCC61HC0E02Q42JY","type":"message.created","ts":"2026-10-02T15:29:43.903Z","gateway_seq":3,"actor":"scout","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRMEYKW1J8A2JFE5V842N","body_md":"Re-running the assay on sample 14.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"sDQJif4JKThc7LlpOIgtGXlCEJ5EQP50LH8zi6JKzure9zCD8C58twwtwwvnSSdn_prY4YkXCXbPadWDjS_BCg"}}},{"who":"ledger","what":"posts while the bus is down: acknowledged","state":{"messages":4,"events":4,"outbox":3,"published":1},"envelope":{"v":1,"id":"01M3YKRMEZCCC61HC0E02Q42K1","type":"message.created","ts":"2026-10-02T15:29:43.903Z","gateway_seq":4,"actor":"ledger","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRMEZCCC61HC0E02Q42K0","body_md":"Logged: sample 14 held, assay repeated.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"RBYWbgq86gR3dO4IjdMUAzPkE5GNwGY9lyuYLKuTXo3eYvWl3FPq92RKnG3pb7eQSXKQgn-f3bqgvipQLhPfCw"}}},{"who":"gateway","what":"cannot publish; three events wait in the outbox, in order","state":{"messages":4,"events":4,"outbox":3,"published":1},"waiting":[2,3,4]},{"who":"operator","what":"restarts the message bus","state":{"messages":4,"events":4,"outbox":3,"published":1}},{"who":"gateway","what":"drains the outbox; bus sequence follows gateway sequence","state":{"messages":4,"events":4,"outbox":0,"published":4},"gateway_seqs":[2,3,4],"nats_seqs":[2,3,4],"in_order":true}]},{"id":"retry","title":"A client retries the same write","claim":"The client-chosen ID makes a write idempotent. A retry returns the original message and creates nothing.","test":"AT-62","steps":[{"who":"scout","what":"posts with a client ID","state":{"messages":5,"events":5,"outbox":1,"published":4},"client_msg_id":"01M3YKRNEFVDMA4Z4C23E2MDR4","message_id":"01M3YKRNEFVDMA4Z4C23E2MDR5"},{"who":"scout","what":"times out and sends the same request again","state":{"messages":5,"events":5,"outbox":0,"published":5},"client_msg_id":"01M3YKRNEFVDMA4Z4C23E2MDR4","message_id":"01M3YKRNEFVDMA4Z4C23E2MDR5","same_message":true,"new_event":false}]},{"id":"forgery","title":"Someone writes to the bus directly","claim":"The bus is not trusted. An event that the gateway did not sign fails verification and is dropped.","test":"AT-03","steps":[{"who":"ada","what":"posts a genuine instruction","state":{"messages":6,"events":6,"outbox":0,"published":6},"envelope":{"v":1,"id":"01M3YKRNHNK391PQAJA4EVFPWA","type":"message.created","ts":"2026-10-02T15:29:45.013Z","gateway_seq":6,"actor":"ada","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRNHNK391PQAJA4EVFPW9","body_md":"Approve the batch.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"HUQe3UbpH5HLBsANIo6ugKN04RdThzWnO7DbvMpq3HpFogosdkRD5Z6bmVuG8vtw5UVb__13N9pKzIEgiwRDAQ"}},"verified":true},{"who":"intruder","what":"copies the event, changes the text and keeps the signature","state":{"messages":6,"events":6,"outbox":0,"published":6},"envelope":{"v":1,"id":"01M3YKRNHNK391PQAJA4EVFPWA","type":"message.created","ts":"2026-10-02T15:29:45.013Z","gateway_seq":6,"actor":"ada","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRNHNK391PQAJA4EVFPW9","body_md":"Discard the batch.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"HUQe3UbpH5HLBsANIo6ugKN04RdThzWnO7DbvMpq3HpFogosdkRD5Z6bmVuG8vtw5UVb__13N9pKzIEgiwRDAQ"}},"verified":false},{"who":"intruder","what":"signs the changed event with a key of their own","state":{"messages":6,"events":6,"outbox":0,"published":6},"envelope":{"v":1,"id":"01M3YKRNHNK391PQAJA4EVFPWA","type":"message.created","ts":"2026-10-02T15:29:45.013Z","gateway_seq":6,"actor":"ada","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRNHNK391PQAJA4EVFPW9","body_md":"Discard the batch.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"JzfPa2LURoGX_S-WjujONw9rEl9khnsHXr-bsBQusV18g9nBh_UnHgO6s5OnBxmJpWES5696MKI257iiNaWPDQ"}},"verified":false}]},{"id":"private","title":"A private conversation stays off the bus","claim":"Events from private channels and direct messages are never published to the bus. They reach members only over the authenticated connection.","test":"v3 F3 server tests","steps":[{"who":"ada","what":"posts in a private channel","state":{"messages":7,"events":7,"outbox":0,"published":6},"envelope":{"v":1,"id":"01M3YKRNMWPTHD7FTGGMSW1G0Y","type":"message.created","ts":"2026-10-02T15:29:45.116Z","gateway_seq":7,"actor":"ada","channel":"c_01DEMOPRIVATE00000000000000","redacted":true,"data":{"message_id":"01M3YKRNMWPTHD7FTGGMSW1G0X","mentions":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"rG9w7IaMpy_Et4tlWTmlSys2MT-3A7AJCv1GPGDL5nU9CA4hiNFLpY1B_Zss2QAIWKHXrcjWuRUovOEF2My0Bg"}},"events_added":1,"outbox_added":0},{"who":"gateway","what":"stores and signs the event, and writes no outbox row for it","state":{"messages":7,"events":7,"outbox":0,"published":6},"on_bus":false}]}],"jcs_selftest":{"canonical":"{\"actor\":\"ada\",\"channel\":\"c_01DEMOPUBLIC000000000000000\",\"data\":{\"attachments\":[],\"body_md\":\"Reactor two is back to temperature.\",\"mentions\":[],\"message_id\":\"01M3YKRMD5BMM62KB8DKCV16NA\"},\"gateway_seq\":1,\"id\":\"01M3YKRMD6M1WG64PTWM00KAC1\",\"redacted\":false,\"ts\":\"2026-10-02T15:29:43.846Z\",\"type\":\"message.created\",\"v\":1}"}};
+const TESTS = {"signed-post":[{"name":"REG-NATS-01 a successful NatsWorker publish drains outbox and records the message sequence","file":"test/fault/recovery.test.ts","source":"it('REG-NATS-01 a successful NatsWorker publish drains outbox and records the message sequence', async () => {\n    resetGuardsForTest();\n    const h = harness();\n    const natsServer = await startTestNats();\n    const stream = await addChatStream(8 * 1024 * 1024);\n    const worker = new NatsWorker(h.db, h.cfg);\n    try {\n      const message = postMessage(h.db, h.events, ada, h.channelId, {\n        body_md: 'nats worker regression',\n        client_msg_id: ulid()\n      }, {\n        maxChars: 40000,\n        floorLimit: 6,\n        floorPause: 600\n      });\n      expect(Number((h.db.prepare('SELECT COUNT(*) n FROM outbox').get() as { n: number }).n)).toBeGreaterThan(0);\n      await worker.start();\n      await waitFor(() => Number((h.db.prepare('SELECT COUNT(*) n FROM outbox').get() as { n: number }).n) === 0, 10000);\n      const sequence = h.db.prepare('SELECT event_id,message_id,nats_seq,type FROM event_seqs WHERE message_id=?').get(message.id) as {\n        event_id: string;\n        message_id: string;\n        nats_seq: number;\n        type: string;\n      } | undefined;\n      expect(sequence).toBeTruthy();\n      expect(sequence?.message_id).toBe(message.id);\n      expect(Number(sequence?.nats_seq)).toBeGreaterThan(0);\n      expect(sequence?.type).toBe('message.created');\n      const state = h.db.prepare('SELECT nats_state,nats_seq FROM messages WHERE id=?').get(message.id) as {\n        nats_state: string;\n        nats_seq: number;\n      };\n      expect(state.nats_state).toBe('published');\n      expect(Number(state.nats_seq)).toBe(Number(sequence?.nats_seq));\n    }\n    finally {\n      await worker.stop();\n      await stream.close();\n      await natsServer.stop();\n      h.close();\n    }\n  });"},{"name":"AT-03 forged event fails pinned gateway signature","file":"test/integration/security-logging.test.ts","source":"it('AT-03 forged event fails pinned gateway signature', () => {\n    const good = generateEd25519(), bad = generateEd25519();\n    const e = signEnvelope({\n      v: 1,\n      id: ulid(),\n      type: 'message.created',\n      ts: new Date().toISOString(),\n      gateway_seq: 1,\n      actor: 'scout',\n      channel: 'c_test',\n      redacted: false,\n      data: {}\n    }, bad.privatePem, bad.keyId);\n    expect(verifyEnvelope(e, good.publicRawB64u)).toBe(false);\n  });"}],"bus-outage":[{"name":"AT-60 acknowledged DB commit survives while NATS outbox remains pending","file":"test/fault/recovery.test.ts","source":"it('AT-60 acknowledged DB commit survives while NATS outbox remains pending', () => {\n    resetGuardsForTest();\n    const h = harness();\n    try {\n      const message = postMessage(h.db, h.events, ada, h.channelId, {\n        body_md: 'nats down',\n        client_msg_id: ulid()\n      }, {\n        maxChars: 40000,\n        floorLimit: 6,\n        floorPause: 600\n      });\n      expect(h.db.prepare('SELECT 1 FROM messages WHERE id=?').get(message.id)).toBeTruthy();\n      expect(Number((h.db.prepare('SELECT COUNT(*) n FROM outbox').get() as {\n        n: number;\n      }).n)).toBeGreaterThan(0);\n    }\n    finally {\n      h.close();\n    }\n  });"},{"name":"AT-61 ordered outbox sequence is monotonically increasing","file":"test/fault/recovery.test.ts","source":"it('AT-61 ordered outbox sequence is monotonically increasing', () => {\n    resetGuardsForTest();\n    const h = harness();\n    try {\n      for (let index = 0; index \u003c 20; index += 1) {\n        postMessage(h.db, h.events, ada, h.channelId, {\n          body_md: `m${index}`,\n          client_msg_id: ulid()\n        }, {\n          maxChars: 40000,\n          floorLimit: 6,\n          floorPause: 600\n        });\n      }\n      const sequences = (h.db.prepare('SELECT seq FROM outbox ORDER BY seq').all() as Array\u003c{\n        seq: number;\n      }>).map((row) => row.seq);\n      expect(sequences).toEqual([...sequences].sort((a, b) => a - b));\n    }\n    finally {\n      h.close();\n    }\n  });"}],"retry":[{"name":"AT-62 database remains integral and idempotent client ID prevents duplicates","file":"test/fault/recovery.test.ts","source":"it('AT-62 database remains integral and idempotent client ID prevents duplicates', () => {\n    resetGuardsForTest();\n    const h = harness();\n    try {\n      const clientId = ulid();\n      const first = postMessage(h.db, h.events, ada, h.channelId, {\n        body_md: 'persist',\n        client_msg_id: clientId\n      }, {\n        maxChars: 40000,\n        floorLimit: 6,\n        floorPause: 600\n      });\n      const retry = postMessage(h.db, h.events, ada, h.channelId, {\n        body_md: 'persist',\n        client_msg_id: clientId\n      }, {\n        maxChars: 40000,\n        floorLimit: 6,\n        floorPause: 600\n      });\n      expect(first.id).toBe(retry.id);\n      expect(Object.values(h.db.prepare('PRAGMA integrity_check').get() as object)).toContain('ok');\n    }\n    finally {\n      h.close();\n    }\n  });"}],"forgery":[{"name":"AT-03 forged event fails pinned gateway signature","file":"test/integration/security-logging.test.ts","source":"it('AT-03 forged event fails pinned gateway signature', () => {\n    const good = generateEd25519(), bad = generateEd25519();\n    const e = signEnvelope({\n      v: 1,\n      id: ulid(),\n      type: 'message.created',\n      ts: new Date().toISOString(),\n      gateway_seq: 1,\n      actor: 'scout',\n      channel: 'c_test',\n      redacted: false,\n      data: {}\n    }, bad.privatePem, bad.keyId);\n    expect(verifyEnvelope(e, good.publicRawB64u)).toBe(false);\n  });"}],"private":[{"name":"a PRIVATE-channel message.created writes NO outbox row","file":"test/integration/dm-events-not-on-shared-bus.test.ts","source":"it('a PRIVATE-channel message.created writes NO outbox row', () => {\n    const h = harness();\n    try {\n      const priv = createChannel(h.db, h.events, ada, 'ops-private', 'private', '');\n      h.db.prepare('DELETE FROM outbox').run();\n      postMessage(h.db, h.events, ada, priv.id, {\n        body_md: 'private roadmap',\n        client_msg_id: ulid(),\n      }, { maxChars: 40000, floorLimit: 6, floorPause: 600 });\n      const events = h.db.prepare(\"SELECT type FROM events WHERE channel_id=? AND type='message.created'\").all(priv.id);\n      expect(events).toHaveLength(1);\n      expect(outboxRowsForChannel(h, priv.id)).toEqual([]);\n      expect(outboxAll(h)).toEqual([]);\n    } finally {\n      h.close();\n    }\n  });"}]};
+// what each recorded step looks like in the picture; one entry per step, checked against the trace at build time
+const KINDS = {"signed-post":["post","commit","publish","deliver"],"bus-outage":["busdown","postdown","postdown","postdown","hold","busup","drain"],"retry":["retry1","retry2"],"forgery":["genuine","tamper","resign"],"private":["private","privdeliver"]};
+
+// ---------------------------------------------------------------- verification (live, WebCrypto)
+function jcs(v) {
+  if (v === null) return "null";
+  if (typeof v === "boolean") return v ? "true" : "false";
+  if (typeof v === "string") return JSON.stringify(v);
+  if (typeof v === "number") { if (!Number.isSafeInteger(v)) throw new TypeError("JCS numbers must be safe integers"); return String(v); }
+  if (Array.isArray(v)) return "[" + v.map(jcs).join(",") + "]";
+  return "{" + Object.keys(v).sort((a, b) => a < b ? -1 : a > b ? 1 : 0).map(k => JSON.stringify(k) + ":" + jcs(v[k])).join(",") + "}";
+}
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+let keyPromise = null, cryptoState = "unknown"; // "ok" | "unsupported"
+function gatewayKey() {
+  if (!keyPromise) keyPromise = (async () => {
+    try {
+      const k = await crypto.subtle.importKey("raw", unb64u(TRACE.gateway_public_key_b64u), { name: "Ed25519" }, false, ["verify"]);
+      cryptoState = "ok"; return k;
+    } catch (e) { cryptoState = "unsupported"; return null; }
+  })();
+  return keyPromise;
+}
+// true / false, or null when this browser has no Ed25519
+async function verifyEnvelope(env) {
+  const key = await gatewayKey(); if (!key) return null;
+  const { sig, ...unsigned } = env;
+  if (!sig || sig.alg !== "ed25519") return false;
+  try { return await crypto.subtle.verify({ name: "Ed25519" }, key, unb64u(sig.value), new TextEncoder().encode(jcs(unsigned))); }
+  catch (e) { return false; }
+}
+
+// AT-03, run in this browser with fresh keys: an event signed by any key but the gateway's must fail against the pinned key
+async function runAT03() {
+  try {
+    const gen = () => crypto.subtle.generateKey({ name: "Ed25519" }, true, ["sign", "verify"]);
+    const good = await gen(), bad = await gen();
+    const unsigned = { v: 1, id: "01TESTRUNINBROWSER000000000", type: "message.created", ts: new Date().toISOString(), gateway_seq: 1, actor: "scout", channel: "c_test", redacted: false, data: {} };
+    const bytes = new TextEncoder().encode(jcs(unsigned));
+    const sig = await crypto.subtle.sign({ name: "Ed25519" }, bad.privateKey, bytes);
+    const againstPinned = await crypto.subtle.verify({ name: "Ed25519" }, good.publicKey, sig, bytes);
+    const againstForger = await crypto.subtle.verify({ name: "Ed25519" }, bad.publicKey, sig, bytes);
+    const pass = againstPinned === false && againstForger === true;
+    return { pass, text: pass ? "✓ passed here, with two keys made a moment ago: the forged event fails against the pinned key, and verifies only against the forger's own" : "✗ did not behave as the test requires in this browser" };
+  } catch (e) { return { pass: null, text: "This browser cannot generate or check Ed25519 keys, so the test was not run here." }; }
+}
+
+// ---------------------------------------------------------------- replay state
+const $ = id => document.getElementById(id);
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let si = 0, ti = 0, playing = false, playTimer = 0;
+const edits = new Map();             // "scene:step" -> edited body text
+const scene = () => TRACE.scenes[si], step = () => scene().steps[ti], kind = () => KINDS[scene().id][ti];
+function envNow() {
+  const s = step(); if (!s.envelope) return null;
+  const key = si + ":" + ti;
+  if (!edits.has(key)) return s.envelope;
+  return { ...s.envelope, data: { ...s.envelope.data, body_md: edits.get(key) } };
+}
+// bus is down between the "stop" and "start" steps of the outage scene
+function busUp() { const k = KINDS[scene().id]; let up = true; for (let i = 0; i <= ti; i++) { if (k[i] === "busdown") up = false; if (k[i] === "busup") up = true; } return up; }
+
+// ---------------------------------------------------------------- the wire (right side)
+const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+function envHtml(env) {
+  const { sig, ...u } = env;
+  const body = JSON.stringify(u, null, 1).replace(/"([a-z_]+)":/g, (m, k) => `<span class="k">"${k}"</span>:`);
+  return body.slice(0, -2) + `,\n <span class="k">"sig"</span>: <span class="sig">{ ${esc(sig.alg)}, key ${esc(sig.key_id)}, ${esc(sig.value.slice(0, 22))}… }</span>\n}`;
+}
+const FACT_LABELS = { nats_seq: "bus sequence", waiting: "waiting, by gateway sequence", gateway_seqs: "gateway sequence", nats_seqs: "bus sequence", in_order: "published in order",
+  client_msg_id: "client ID", message_id: "message", same_message: "same message returned", new_event: "new event created", events_added: "events written", outbox_added: "outbox rows written", on_bus: "reached the bus", subject: "bus subject" };
+function factsHtml(s) {
+  const rows = Object.keys(FACT_LABELS).filter(k => k in s).map(k => `<dt>${FACT_LABELS[k]}</dt><dd>${esc(Array.isArray(s[k]) ? s[k].join(", ") : s[k] === true ? "yes" : s[k] === false ? "no" : s[k])}</dd>`);
+  return rows.length ? `<dl class="facts">${rows.join("")}</dl>` : "";
+}
+function renderWire() {
+  const sc = scene(), s = step(), env = s.envelope, key = si + ":" + ti;
+  const t = TESTS[sc.id] || [];
+  $("wire").innerHTML =
+    `<h2>${esc(sc.title)}</h2><p class="claim">${esc(sc.claim)}</p>` +
+    `<ol class="steps">${sc.steps.map((x, i) => `<li class="${i === ti ? "now" : i > ti ? "later" : ""}"><span class="who">${esc(x.who)}</span><span>${esc(x.what)}</span></li>`).join("")}</ol>` +
+    (env ? `<div class="envelope"><h3>THE EVENT, AS SIGNED</h3><pre id="envpre"></pre>
+        <div class="edit"><label for="body">change the text:</label><input id="body" type="text" autocomplete="off" spellcheck="false">
+        <button id="restore" type="button">restore</button></div>
+        <p class="verdict na" id="verdict">checking the signature…</p></div>` : "") +
+    factsHtml(s) +
+    t.map(x => `<details><summary>the test behind this: ${esc(x.name)}</summary><p class="src">${esc(x.file)}</p><pre>${esc(x.source)}</pre>` +
+      (x.name.startsWith("AT-03") ? `<div class="edit"><button type="button" class="runtest">run this test here</button><span class="verdict na" data-out></span></div>` : "") + `</details>`).join("");
+  for (const b of $("wire").querySelectorAll(".runtest")) b.addEventListener("click", async () => { const out = b.parentElement.querySelector("[data-out]"); out.className = "verdict na"; out.textContent = "running…"; const r = await runAT03(); out.className = "verdict " + (r.pass === null ? "na" : r.pass ? "ok" : "bad"); out.textContent = r.text; });
+  if (env) {
+    const input = $("body");
+    input.value = edits.has(key) ? edits.get(key) : env.data.body_md;
+    input.addEventListener("input", () => { if (input.value === env.data.body_md) edits.delete(key); else edits.set(key, input.value); refreshEnvelope(); requestDraw(); });
+    $("restore").addEventListener("click", () => { edits.delete(key); input.value = env.data.body_md; refreshEnvelope(); requestDraw(); input.focus(); });
+    refreshEnvelope();
+  }
+}
+let verifyTicket = 0, lastVerdict = null;
+async function refreshEnvelope() {
+  const env = envNow(), ticket = ++verifyTicket, key = si + ":" + ti;
+  $("envpre").innerHTML = envHtml(env);
+  $("restore").disabled = !edits.has(key);
+  const ok = await verifyEnvelope(env); if (ticket !== verifyTicket) return;
+  lastVerdict = ok;
+  const v = $("verdict"); if (!v) return;
+  if (ok === null) { v.className = "verdict na"; v.textContent = `This browser cannot check Ed25519 signatures, so nothing was checked here. The gateway's own check at recording time said: ${step().verified === false ? "does not verify" : "verifies"}.`; }
+  else if (ok) { v.className = "verdict ok"; v.textContent = "✓ signature verifies against the gateway's public key (checked by your browser just now)"; }
+  else { v.className = "verdict bad"; v.textContent = edits.has(key) ? "✗ signature no longer verifies: the text is not what the gateway signed" : "✗ signature does not verify against the gateway's public key: this event is dropped"; }
+  requestDraw();
+}
+
+// ---------------------------------------------------------------- controls
+function go(nsi, nti) {
+  si = Math.max(0, Math.min(TRACE.scenes.length - 1, nsi)); ti = Math.max(0, Math.min(scene().steps.length - 1, nti));
+  lastVerdict = null;
+  [...$("scenes").children].forEach((b, i) => b.setAttribute("aria-current", i === si ? "true" : "false"));
+  $("prev").disabled = si === 0 && ti === 0;
+  $("next").disabled = si === TRACE.scenes.length - 1 && ti === scene().steps.length - 1;
+  const s = step(), st = s.state;
+  $("say").innerHTML = `<span class="who">${esc(s.who)}</span> ${esc(s.what)}`;
+  $("counts").innerHTML = `<span>step <b>${ti + 1}</b> of <b>${scene().steps.length}</b></span><span>messages <b>${st.messages}</b></span><span>events <b>${st.events}</b></span><span>waiting in outbox <b>${st.outbox}</b></span><span>published <b>${st.published}</b></span><span>bus <b>${busUp() ? "up" : "down"}</b></span>`;
+  renderWire(); startStep();
+}
+function nextStep() { if (ti < scene().steps.length - 1) go(si, ti + 1); else if (si < TRACE.scenes.length - 1) go(si + 1, 0); else setPlaying(false); }
+function prevStep() { if (ti > 0) go(si, ti - 1); else if (si > 0) go(si - 1, TRACE.scenes[si - 1].steps.length - 1); }
+function setPlaying(on) {
+  playing = on; $("play").setAttribute("aria-pressed", String(on)); $("play").textContent = on ? "pause" : "play";
+  clearInterval(playTimer); if (on) playTimer = setInterval(nextStep, reduced ? 3200 : 2600);
+}
+async function verifyAll() {
+  let n = 0, ok = 0, bad = 0, na = 0; const failed = [];
+  for (const sc of TRACE.scenes) for (const s of sc.steps) if (s.envelope) {
+    n++; const r = await verifyEnvelope(s.envelope);
+    if (r === null) na++; else if (r) ok++; else { bad++; failed.push(`the ${s.who} ${s.what}`); }
+  }
+  $("tally").innerHTML = na ? `This browser cannot check Ed25519 signatures; <b>${n}</b> recorded events were not checked.`
+    : `<b>${n}</b> recorded events checked by your browser: <b>${ok}</b> verify, <b>${bad}</b> do not. The ${bad} that fail are the forgeries (${esc(failed.join("; "))}).`;
+}
+
+// A lie, planted: one bit of a genuine signature is flipped. A checker that still says "verifies" is broken.
+async function testChecker() {
+  const env = TRACE.scenes[0].steps[0].envelope, raw = unb64u(env.sig.value); raw[7] ^= 1;
+  const b64u = btoa(String.fromCharCode(...raw)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const lied = { ...env, sig: { ...env.sig, value: b64u } };
+  const honest = await verifyEnvelope(env), caught = await verifyEnvelope(lied);
+  $("tally").innerHTML = honest === null ? "This browser cannot check Ed25519 signatures, so the checker could not be tested."
+    : honest === true && caught === false ? "Checker tested: one bit of a genuine signature was flipped, and the check <b>failed it</b>; the untouched signature <b>verifies</b>."
+    : "<b>The checker did not behave correctly in this browser.</b> Do not rely on the results shown here.";
+}
+// The invariant, checked for as long as the page is open: every event the gateway signed verifies, and neither forgery does.
+const inv = { held: 0, broken: 0, list: [], next: 0 };
+for (const sc of TRACE.scenes) for (const s of sc.steps) if (s.envelope) inv.list.push({ env: s.envelope, expect: s.who !== "intruder" });
+async function invariantTick() {
+  if (document.hidden || cryptoState === "unsupported") return;
+  const item = inv.list[inv.next++ % inv.list.length], got = await verifyEnvelope(item.env);
+  if (got === null) { $("inv").textContent = "Invariant not checked: this browser has no Ed25519."; return; }
+  if (got === item.expect) inv.held++; else inv.broken++;
+  $("inv").innerHTML = `invariant (signed events verify, forgeries do not): held <b>${inv.held}</b> times this visit, broken <b${inv.broken ? ' class="bad"' : ""}>${inv.broken}</b>`;
+}
+
+// ---------------------------------------------------------------- the picture: a buffer of text cells
+// Each cell holds a material, a depth and an emission. Lights add to it. Material picks the glyph family; the light on
+// the cell picks how heavy a glyph is used and how bright it is drawn. Only cells whose glyph or colour changed are redrawn.
+const canvas = $("c"), ctx = canvas.getContext("2d");
+const MAT = [null,
+  { g: " ..··::", c: [0.55, 0.57, 0.50] },   // 1 floor
+  { g: ".:=+#%@", c: [0.80, 0.78, 0.70] },   // 2 frame (gateway)
+  { g: " .'|!|I", c: [0.62, 0.64, 0.56] },   // 3 warp threads
+  { g: ".-=≡≡##", c: [0.95, 0.71, 0.42] },   // 4 woven event (warm)
+  { g: ".·:oO0@", c: [0.90, 0.90, 0.84] },   // 5 member body
+  { g: " .~~≈≈≋", c: [0.42, 0.56, 0.66] },   // 6 bus, running
+  { g: " ..··.. ", c: [0.36, 0.30, 0.28] },  // 7 bus, stopped
+  { g: ".-=≡≡##", c: [0.62, 0.71, 0.78] },   // 8 woven event, private (cool)
+  { g: ".x×xX##", c: [0.89, 0.41, 0.29] },   // 9 forged thread
+  { g: ".:-=##@", c: [0.95, 0.71, 0.42] },   // 10 outbox bar
+  { g: ".·•*✦✦@", c: [1.00, 0.86, 0.60] },   // 11 packet
+  { g: ".·:=+*#", c: [0.72, 0.82, 0.48] }    // 12 verified mark
+];
+let W = 0, H = 0, CW = 6, CHh = 11, DPR = 1, mat, dep, emi, pG, pC, lights = [], dirtyAll = true, drawQueued = false;
+const U = { w: 100, h: 60 };                 // scene units
+const ux = u => Math.round(u / U.w * (W - 1)), uy = v => Math.round(v / U.h * (H - 1));
+const P = { ada: [16, 11], scout: [50, 11], ledger: [84, 11], gateway: [50, 26], outbox: [80, 28], bus: [50, 53], intruder: [9, 44] };
+function resize() {
+  const r = canvas.getBoundingClientRect(); DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const fine = r.width > 700 ? 6 : 5; CW = fine; CHh = Math.round(fine * 1.85);
+  W = Math.max(40, Math.floor(r.width / CW)); H = Math.max(24, Math.floor(r.height / CHh));
+  canvas.width = Math.round(r.width * DPR); canvas.height = Math.round(r.height * DPR);
+  const n = W * H; mat = new Uint8Array(n); dep = new Float32Array(n); emi = new Float32Array(n); pG = new Array(n).fill(""); pC = new Array(n).fill("");
+  dirtyAll = true; placeTags(); requestDraw();
+}
+function put(x, y, m, d, e) { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = y * W + x; if (d < dep[i]) return; dep[i] = d; mat[i] = m; emi[i] = e || 0; }
+function rect(u0, v0, u1, v1, m, d, e) { for (let y = uy(v0); y <= uy(v1); y++) for (let x = ux(u0); x <= ux(u1); x++) put(x, y, m, d, e); }
+function hline(u0, u1, v, m, d, e, gap) { const y = uy(v); for (let x = ux(u0); x <= ux(u1); x++) if (!gap || ((x * 7 + y * 3) % gap)) put(x, y, m, d, e); }
+function disc(u, v, ru, m, d, e) { const X = ux(u), Y = uy(v), rx = Math.max(1, Math.round(ru / U.w * W)), ry = Math.max(1, Math.round(rx * CW / CHh));
+  for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) if ((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1) put(X + x, Y + y, m, d, e); }
+// what is woven so far: one row per event in the gateway's record
+function clothRows() {
+  const rows = [], st = step().state; let seen = 0;
+  for (let a = 0; a <= si; a++) for (let b = 0; b <= (a === si ? ti : TRACE.scenes[a].steps.length - 1); b++) {
+    const s = TRACE.scenes[a].steps[b], k = KINDS[TRACE.scenes[a].id][b];
+    if (s.envelope && (k === "post" || k === "postdown" || k === "private" || k === "retry1" || k === "genuine")) { rows.push({ priv: k === "private", cur: a === si && b === ti }); seen++; }
+  }
+  while (rows.length > st.events) rows.shift();
+  return rows.slice(-9);
+}
+function buildScene(tAnim) {
+  mat.fill(0); dep.fill(-1); emi.fill(0); lights = [];
+  const s = step(), k = kind(), up = busUp(), st = s.state;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (((x * 13 + y * 29) % 11) === 0) put(x, y, 1, 0, 0);
+  // members
+  for (const id of ["ada", "scout", "ledger"]) {
+    const [u, v] = P[id], active = s.who === id || (k === "deliver" && id === "scout");
+    if (id === "ada") { disc(u, v - 3.4, 1.5, 5, 2, active ? .5 : .22); rect(u - 2.2, v - 1.2, u + 2.2, v + 2.8, 5, 2, active ? .32 : .14); }
+    else { rect(u - 2.8, v - 4.6, u + 2.8, v + 2.8, 2, 2, active ? .24 : .1); disc(u, v - .9, 1.3, 11, 3, active ? .85 : .32); }
+    lights.push({ u, v, r: active ? 15 : 9, i: active ? 1.25 : .5, c: [1, .86, .62] });
+  }
+  // gateway: a loom. frame, warp threads, and the cloth of events below it
+  const [gu, gv] = P.gateway;
+  rect(gu - 15, gv - 6, gu + 15, gv - 4.4, 2, 3, .22); rect(gu - 15, gv - 6, gu - 13.6, gv + 22, 2, 3, .12); rect(gu + 13.6, gv - 6, gu + 15, gv + 22, 2, 3, .12);
+  for (let u = gu - 12; u <= gu + 12; u += 2) for (let y = uy(gv - 4); y <= uy(gv + 22); y++) put(ux(u), y, 3, 1, .05);
+  const rows = clothRows();
+  rows.forEach((r, i) => { const v = gv - 2.6 + i * 2.5; hline(gu - 12.6, gu + 12.6, v, r.priv ? 8 : 4, 4, r.cur ? .75 : .3); hline(gu - 12.6, gu + 12.6, v + .9, r.priv ? 8 : 4, 4, r.cur ? .5 : .16, 3); });
+  lights.push({ u: gu, v: gv + 4, r: 20, i: s.who === "gateway" ? 1.1 : .5, c: [1, .8, .52] });
+  // outbox: one bar per waiting event
+  const [ou, ov] = P.outbox;
+  rect(ou - 5, ov - 6, ou + 5, ov - 5.2, 2, 3, .1); rect(ou - 5, ov + 9, ou + 5, ov + 9.8, 2, 3, .1);
+  for (let i = 0; i < Math.min(st.outbox, 5); i++) rect(ou - 3.8, ov + 6.6 - i * 2.9, ou + 3.8, ov + 8 - i * 2.9, 10, 4, .7);
+  if (st.outbox) lights.push({ u: ou, v: ov + 2, r: 11, i: .5 + .25 * st.outbox, c: [1, .72, .4] });
+  // bus
+  const [, bv] = P.bus;
+  for (let y = uy(bv - 1.8); y <= uy(bv + 1.8); y++) for (let x = 0; x < W; x++) {
+    const wave = Math.sin(x * .33 + y * 1.1 - tAnim * 2.2); put(x, y, up ? 6 : 7, 2, up ? .34 + .26 * wave : .16);
+  }
+  const beads = Math.min(st.published, 12);
+  for (let i = 0; i < beads; i++) disc(96 - i * 6.2 - (up ? (tAnim * 1.4) % 6.2 : 0), bv, .9, 11, 5, up ? .8 : .25);
+  lights.push({ u: 50, v: bv, r: 60, i: up ? .55 : .06, c: [.6, .8, 1] });
+  // intruder, only in the forgery scene
+  if (k === "tamper" || k === "resign") { const [iu, iv] = P.intruder; disc(iu, iv - 3, 2, 9, 3, .5); rect(iu - 2.4, iv - .6, iu + 2.4, iv + 3, 9, 3, .35); lights.push({ u: iu, v: iv, r: 13, i: 1.1, c: [1, .45, .3] }); }
+  // the thing in motion for this step
+  const path = PATHS[k] ? PATHS[k](s) : null;
+  if (path) {
+    const f = reduced ? 1 : Math.max(0, Math.min(1, anim.p)), m = (k === "tamper" || k === "resign" || lastVerdict === false) ? 9 : k === "private" ? 8 : 11;
+    const seg = f * (path.length - 1), j = Math.min(path.length - 2, Math.floor(seg)), q = seg - j;
+    for (let a = 0; a <= j; a++) { const [u0, v0] = path[a], [u1, v1] = a === j ? [path[j][0] + (path[j + 1][0] - path[j][0]) * q, path[j][1] + (path[j + 1][1] - path[j][1]) * q] : path[a + 1];
+      const n = Math.max(2, Math.round(Math.hypot((u1 - u0) / U.w * W, (v1 - v0) / U.h * H)));
+      for (let t = 0; t <= n; t++) put(ux(u0 + (u1 - u0) * t / n), uy(v0 + (v1 - v0) * t / n), m, 6, .45); }
+    const hu = path[j][0] + (path[j + 1][0] - path[j][0]) * q, hv = path[j][1] + (path[j + 1][1] - path[j][1]) * q;
+    disc(hu, hv, 1.3, m, 7, 1); lights.push({ u: hu, v: hv, r: 10, i: 1.3, c: m === 9 ? [1, .45, .3] : m === 8 ? [.7, .85, 1] : [1, .86, .6] });
+    if (f >= 1 && (k === "deliver" || k === "genuine") && lastVerdict !== false) { disc(P.scout[0] + 9, P.scout[1] - 1, 1.5, 12, 7, .9); }
+  }
+}
+const viaGate = id => id === "scout" ? [[P.scout[0], 14], [P.gateway[0], 21]] : [[P[id][0], 14], [P[id][0], 17.5], [P.gateway[0], 17.5], [P.gateway[0], 21]];
+const PATHS = {
+  post: s => viaGate(s.who), postdown: s => viaGate(s.who), retry1: s => viaGate(s.who), genuine: s => viaGate(s.who),
+  retry2: s => [...viaGate(s.who), [P[s.who][0], 14]],
+  publish: () => [[P.gateway[0] + 14, 31], [P.outbox[0], 31], [P.outbox[0], 44], [P.outbox[0], P.bus[1]]],
+  drain: () => [[P.gateway[0] + 14, 31], [P.outbox[0], 31], [P.outbox[0], 44], [P.outbox[0], P.bus[1]], [20, P.bus[1]]],
+  deliver: () => [[P.outbox[0], P.bus[1]], [68, P.bus[1]], [68, 15.5], [P.scout[0] + 5, 15.5], [P.scout[0] + 5, 13.5]],
+  tamper: () => [[P.intruder[0], 47], [P.intruder[0], P.bus[1]], [32, P.bus[1]], [32, 15.5], [P.scout[0] - 5, 15.5], [P.scout[0] - 5, 13.5]],
+  resign: () => [[P.intruder[0], 47], [P.intruder[0], P.bus[1]], [32, P.bus[1]], [32, 15.5], [P.scout[0] - 5, 15.5], [P.scout[0] - 5, 13.5]],
+  private: () => viaGate("ada"),
+  privdeliver: () => [[P.gateway[0], 21], [P.gateway[0], 14]]
+};
+const anim = { p: 1, t0: 0, tAnim: 0, raf: 0, last: 0 };
+function startStep() { anim.p = reduced ? 1 : 0; anim.t0 = performance.now(); requestDraw(); }
+function requestDraw() { if (drawQueued) return; drawQueued = true; anim.raf = requestAnimationFrame(frame); }
+function frame(now) {
+  drawQueued = false;
+  const moving = !reduced && anim.p < 1; if (moving) anim.p = Math.max(0, Math.min(1, (now - anim.t0) / 1400));
+  const flowing = !reduced && busUp() && !document.hidden;
+  if (flowing) { anim.tAnim += Math.min(.1, (now - (anim.last || now)) / 1000); } anim.last = now;
+  buildScene(anim.tAnim); paint();
+  if (moving || (flowing && now - anim.t0 < 60000)) requestDraw();        // the bus keeps flowing for a minute after the last step, then rests
+}
+function paint() {
+  const sx = canvas.width / W, sy = canvas.height / H;
+  ctx.textBaseline = "alphabetic"; ctx.font = `${Math.round(sy * 1.02)}px ui-monospace, Menlo, Consolas, "DejaVu Sans Mono", monospace`;
+  if (dirtyAll) { ctx.fillStyle = "#05060a"; ctx.fillRect(0, 0, canvas.width, canvas.height); pG.fill(""); pC.fill(""); }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x, m = mat[i]; let g = " ", col = "";
+    if (m) {
+      let lr = .1, lg = .1, lb = .12;
+      for (const L of lights) { const dx = (x / W * U.w - L.u), dy = (y / H * U.h - L.v) * 1.15, a = L.i / (1 + (dx * dx + dy * dy) / (L.r * L.r) * 6); lr += a * L.c[0]; lg += a * L.c[1]; lb += a * L.c[2]; }
+      const M = MAT[m], e = emi[i], r = Math.min(1, M.c[0] * (lr * .55 + e)), gg = Math.min(1, M.c[1] * (lg * .55 + e)), b = Math.min(1, M.c[2] * (lb * .55 + e));
+      const lum = Math.min(.999, r * .3 + gg * .59 + b * .11);
+      g = M.g[Math.min(M.g.length - 1, Math.floor(lum * 1.08 * M.g.length))];
+      col = `rgb(${(r * 255) | 0},${(gg * 255) | 0},${(b * 255) | 0})`;
+    }
+    if (g === pG[i] && col === pC[i]) continue;
+    pG[i] = g; pC[i] = col;
+    ctx.fillStyle = "#05060a"; ctx.fillRect(Math.floor(x * sx), Math.floor(y * sy), Math.ceil(sx), Math.ceil(sy));
+    if (g !== " ") { ctx.fillStyle = col; ctx.fillText(g, x * sx, (y + .82) * sy); }
+  }
+  dirtyAll = false;
+  // labels follow the state without being redrawn every frame
+  const st = step().state, up = busUp();
+  setTag("outbox", `<b>OUTBOX</b><span class="n">${st.outbox}</span> waiting`, st.outbox > 0, false);
+  setTag("bus", `<b>MESSAGE BUS</b>${up ? `<span class="n">${st.published}</span> published` : "down"}`, false, !up);
+}
+const tagEls = {}, tagHtml = {};
+function setTag(id, html, on, down) { const el = tagEls[id]; if (!el) return; const key = html + on + down; if (tagHtml[id] === key) return; tagHtml[id] = key; el.innerHTML = html; el.className = "tag" + (on ? " on" : "") + (down ? " down" : ""); }
+function placeTags() {
+  const box = $("tags"); if (!box.children.length) {
+    for (const [id, html] of [["ada", "<b>ADA</b>person"], ["scout", "<b>SCOUT</b>agent"], ["ledger", "<b>LEDGER</b>agent"], ["gateway", "<b>GATEWAY</b>signs and orders<br>every event"], ["outbox", ""], ["bus", ""]]) {
+      const el = document.createElement("div"); el.className = "tag"; el.innerHTML = html; box.appendChild(el); tagEls[id] = el; }
+  }
+  const at = { ada: [P.ada[0], 3.4], scout: [P.scout[0], 3.4], ledger: [P.ledger[0], 3.4], gateway: [26.5, 23], outbox: [P.outbox[0], P.outbox[1] + 13.5], bus: [50, 47.6] };
+  for (const id in at) { tagEls[id].style.left = (at[id][0] / U.w * 100) + "%"; tagEls[id].style.top = (at[id][1] / U.h * 100) + "%"; }
+}
+
+// ---------------------------------------------------------------- start
+$("when").textContent = new Date(TRACE.recorded_at).toISOString().slice(0, 16).replace("T", " ") + " UTC";
+TRACE.scenes.forEach((sc, i) => { const b = document.createElement("button"); b.type = "button"; b.textContent = `${i + 1}. ${sc.title}`; b.addEventListener("click", () => { setPlaying(false); go(i, 0); }); $("scenes").appendChild(b); });
+$("prev").addEventListener("click", () => { setPlaying(false); prevStep(); });
+$("next").addEventListener("click", () => { setPlaying(false); nextStep(); });
+$("play").addEventListener("click", () => setPlaying(!playing));
+$("all").addEventListener("click", verifyAll);
+$("lie").addEventListener("click", testChecker);
+addEventListener("keydown", e => {
+  if (e.target instanceof HTMLInputElement || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "ArrowRight") { setPlaying(false); nextStep(); e.preventDefault(); }
+  else if (e.key === "ArrowLeft") { setPlaying(false); prevStep(); e.preventDefault(); }
+  else if (e.key === " " && !(e.target instanceof HTMLButtonElement) && !(e.target instanceof HTMLElement && e.target.tagName === "SUMMARY")) { setPlaying(!playing); e.preventDefault(); }
+});
+addEventListener("resize", resize);
+// the page's own check that its canonical JSON matches the gateway's, before it claims anything
+const { sig: _s, ...firstUnsigned } = TRACE.scenes[0].steps[0].envelope;
+if (jcs(firstUnsigned) !== TRACE.jcs_selftest.canonical) document.body.insertAdjacentHTML("afterbegin", '<p style="color:#e2694a;padding:8px 18px;margin:0">This page failed its own self-check and its verification results should not be trusted.</p>');
+resize(); go(0, 0);
+invariantTick(); setInterval(invariantTick, 1200);
+</script>
+</body>
+</html>
