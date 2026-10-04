@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#05060a">
+<meta name="description" content="Play through a real Weave Chat gateway recording. Inspect signed events, recover from outages, and check Ed25519 signatures live in your browser.">
+<title>Weave Chat — The Signature Lab</title>
+<style>
+:root{color-scheme:dark;--bg:#05060a;--panel:#0b1017;--raised:#101922;--line:#21313c;--fg:#e4e6d8;--dim:#93a5ad;--muted:#718791;--cyan:#7cddd7;--warm:#f2b46b;--ok:#a9d789;--bad:#fa8a73;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"DejaVu Sans Mono",monospace}
+*{box-sizing:border-box}html,body{margin:0;min-width:300px;background:var(--bg);color:var(--fg);font:12px/1.55 var(--mono)}button,input{font:inherit}button{cursor:pointer}button:disabled{cursor:default}button,a,input,summary{-webkit-tap-highlight-color:transparent}button,input,summary{outline-offset:4px}button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--cyan)}button{color:var(--fg);background:#0d151d;border:1px solid #2a3c48;border-radius:5px;min-height:38px;padding:8px 13px;transition:background .18s,border-color .18s,color .18s,box-shadow .18s,transform .18s}button:hover:not(:disabled){color:#fff;border-color:var(--cyan);background:#14252d;box-shadow:0 0 16px #7cddd714}button:active:not(:disabled){transform:translateY(1px);background:#203843}button[aria-pressed=true],button[aria-current=true]{color:var(--cyan);border-color:#579b9e;background:#11282e;box-shadow:inset 0 0 14px #7cddd709}button:disabled{opacity:.35}button.primary{background:var(--cyan);border-color:var(--cyan);color:#082022;font-weight:700;min-width:110px}button.primary:hover{background:#a7eee6;border-color:#a7eee6;color:#082022;box-shadow:0 0 24px #7cddd729}button.primary[aria-pressed=true]{background:#143e45;color:var(--cyan)}.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.skip{position:fixed;top:-60px;left:12px;z-index:5;background:var(--cyan);color:#08151a;padding:8px 12px}.skip:focus{top:10px}.page{width:100%;grid-template-columns:minmax(0,1fr);height:100vh;height:100dvh;min-height:660px;display:grid;grid-template-rows:72px minmax(0,1fr) auto}.topbar{min-width:0;display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:1px solid var(--line);padding:0 28px;background:#080d13}.brand{display:flex;align-items:center;gap:13px;flex:none}.brandmark{width:32px;height:32px;position:relative;background:repeating-linear-gradient(90deg,transparent 0 5px,var(--cyan) 5px 7px,transparent 7px 10px);transform:skewY(-12deg);opacity:.95}.brandmark:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 5px,#05060a 5px 7px,transparent 7px 10px)}h1{font-size:16px;letter-spacing:-.7px;margin:0;font-weight:650}.brand small{display:block;font-size:9px;letter-spacing:2px;color:var(--dim);margin-top:2px}.top-note{color:var(--dim);font-size:11px;margin:0;flex:1}.top-status{display:flex;gap:9px;align-items:center;white-space:nowrap;color:var(--cyan);font-size:10px;letter-spacing:1px}.status-dot{width:6px;height:6px;display:inline-block;background:var(--cyan);border-radius:50%;box-shadow:0 0 12px #7cddd76b}.recording{display:block;color:var(--muted);font-size:9px;letter-spacing:0;text-align:right;margin-top:3px}main{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,400px);min-height:0;overflow:hidden}#stage{position:relative;display:grid;grid-template-rows:auto minmax(0,1fr) auto;border-right:1px solid var(--line);min-height:0;background:radial-gradient(ellipse at 50% 40%,#0b1b2240,transparent 70%)}.stage-head{padding:25px 30px 12px;display:flex;justify-content:space-between;align-items:start;gap:16px}.eyebrow{display:block;font-size:9px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase}.stage-head h2{font-size:clamp(19px,2.1vw,29px);font-weight:500;line-height:1.3;letter-spacing:-1.1px;margin:7px 0 5px}.stage-head p{font-size:11px;color:var(--dim);margin:0}.stage-index{font-size:10px;color:var(--muted);white-space:nowrap;padding-top:4px}.stage-index strong{color:var(--cyan);font-weight:500}.legend{display:flex;align-items:center;gap:15px;margin-top:14px;color:var(--muted);font-size:9px}.legend i{font-style:normal;color:var(--cyan);margin-right:5px}.legend .amber{color:var(--warm)}#pic{position:relative;min-height:0;margin:0 18px;overflow:hidden;isolation:isolate}#c{display:block;position:absolute;width:100%;height:100%;inset:0}#pic:after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 40px 15px #05060a}.tag{position:absolute;transform:translate(-50%,-50%);text-align:center;white-space:nowrap;pointer-events:none;font-size:9px;color:var(--muted);line-height:1.5;text-shadow:0 0 5px #05060a,0 1px 3px #05060a;z-index:1}.tag b{display:block;color:#b8d6d7;font-size:10px;letter-spacing:1.7px;font-weight:500}.tag.on b,.tag .n{color:var(--warm)}.tag.down b{color:var(--bad)}.tag.gate b{color:var(--cyan)}#readout{position:relative;border-top:1px solid var(--line);padding:15px 28px 17px;background:#090f16}#counts{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:0}#counts span{color:var(--muted);font-size:9px;letter-spacing:.8px;text-transform:uppercase}#counts b{display:block;color:var(--fg);font-size:24px;line-height:1.3;font-weight:400;letter-spacing:-1px;margin-bottom:2px}#counts .queued b{color:var(--warm)}#say{margin:13px 0 0;padding-top:11px;border-top:1px solid #1a2833;font-size:11px;min-height:31px;color:var(--dim)}#say .who{color:var(--cyan)}#say .who:before{content:"> ";color:var(--muted)}#wire{padding:25px 24px;overflow:auto;min-width:0;scrollbar-color:#314551 #0a1018;scrollbar-width:thin;background:linear-gradient(125deg,#0c121a,#080d13)}.wire-kicker{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:13px}.wire-kicker span{color:var(--cyan)}#wire h2{font-size:18px;font-weight:500;line-height:1.4;letter-spacing:-.7px;margin:0 0 9px}#wire .claim{font-size:11px;line-height:1.75;color:var(--dim);margin:0 0 18px}.steps{list-style:none;padding:0;margin:0 0 20px;counter-reset:step}.steps li{counter-increment:step;display:grid;grid-template-columns:22px 1fr;gap:7px;margin:0;padding:8px 10px 8px 0;font-size:10px;border-left:2px solid transparent;color:var(--dim);transition:color .2s,background .2s}.steps li:before{content:counter(step,decimal-leading-zero);color:var(--muted);text-align:center;font-size:9px;padding-top:1px}.steps li.now{border-left-color:var(--cyan);background:linear-gradient(90deg,#18333966,transparent);color:var(--fg)}.steps li.now:before,.steps .who{color:var(--cyan)}.steps li.later{color:#82919b}.steps .who{margin-right:6px}.envelope{border-top:1px solid var(--line);padding-top:16px}.envelope h3{font-size:9px;letter-spacing:1.5px;font-weight:400;margin:0 0 9px;color:var(--dim)}.event-meta{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:10px}.event-meta span{font-size:9px;color:var(--muted)}.event-meta .chip{font-size:8px;color:var(--cyan);border:1px solid #28464b;border-radius:3px;padding:1px 5px}.json-view{background:#05090e;border:1px solid #1b2a34;border-radius:5px;padding:12px;max-height:255px;overflow:auto;scrollbar-width:thin;scrollbar-color:#314551 #05090e}pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;margin:0;font:10px/1.65 var(--mono);color:#b5c7cf}pre .k{color:#7f9ca9}pre .sig{color:#77aba8}.edit{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:13px 0 9px}.edit label{font-size:10px;color:var(--dim);width:100%}.edit input{width:0;min-width:0;flex:1;padding:9px 10px;min-height:36px;border:1px solid #324650;background:#080d13;color:var(--fg);border-radius:4px;font-size:10px}.edit button{font-size:10px;min-height:36px;padding:7px 10px}.edit input:focus-visible{border-color:var(--cyan)}.hint{font-size:10px;line-height:1.6;color:var(--muted);margin:9px 0}.verdict{font-size:10px;line-height:1.7;padding:9px 11px;border:1px solid #273943;border-radius:4px;margin:9px 0 0;color:var(--dim);background:#111c24}.verdict.ok{color:var(--ok);background:#142319;border-color:#29402b}.verdict.bad{color:var(--bad);background:#2b1919;border-color:#59312b}.verdict.na{color:var(--dim)}dl.facts{display:grid;grid-template-columns:minmax(90px,.8fr) minmax(0,1.2fr);font-size:10px;gap:6px 12px;margin:16px 0}dl.facts dt{color:var(--muted)}dl.facts dd{margin:0;overflow-wrap:anywhere;color:var(--fg)}details{border-top:1px solid var(--line);padding-top:12px;margin-top:16px}summary{cursor:pointer;color:var(--dim);font-size:10px;padding:2px 0}summary:hover{color:var(--cyan)}details .src{color:var(--muted);font-size:9px;overflow-wrap:anywhere;margin:9px 0}details pre{padding:10px;background:#05090e;border:1px solid var(--line);max-height:260px;overflow:auto;font-size:9px}footer{min-width:0;position:relative;z-index:2;border-top:1px solid #31424d;background:#0a1119;padding:15px 28px 12px;box-shadow:0 -12px 40px #0002}.deck-top{display:flex;align-items:center;gap:20px}.deck-label{font-size:9px;letter-spacing:1.6px;color:var(--muted);flex:none}.scenes{display:flex;gap:6px;flex:1}.scenes button{display:flex;align-items:center;gap:10px;min-height:36px;padding:6px 11px;text-align:left;font-size:10px;white-space:nowrap;flex:1}.scenes button .num{font-size:9px;color:var(--muted)}.scenes button[aria-current=true] .num{color:var(--cyan)}.quality{flex:none;font-size:9px;display:flex;align-items:center;gap:7px}.quality>span{color:var(--muted)}#quality{min-height:30px;padding:4px 8px;font-size:9px}.timeline{display:flex;align-items:center;gap:12px;padding:12px 0 11px}.timeline label{font-size:9px;color:var(--muted);width:51px}.timeline input{flex:1;min-width:0;accent-color:var(--cyan);height:17px;cursor:ew-resize;--progress:0%;appearance:none;background:transparent}.timeline input::-webkit-slider-runnable-track{height:3px;background:linear-gradient(to right,var(--cyan) var(--progress),#2b3a44 var(--progress));border-radius:2px}.timeline input::-webkit-slider-thumb{appearance:none;width:9px;height:13px;margin-top:-5px;background:var(--cyan);border:2px solid #c3ffff;border-radius:2px;box-shadow:0 0 10px #7cddd733}.timeline input::-moz-range-track{height:3px;background:#2b3a44}.timeline input::-moz-range-progress{height:3px;background:var(--cyan)}.timeline input::-moz-range-thumb{width:8px;height:12px;background:var(--cyan);border:1px solid #c3ffff;border-radius:2px}.timeline output{min-width:55px;text-align:right;font-size:10px;color:var(--dim)}.bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.transport{display:flex;gap:6px}.transport button{min-width:39px;padding:8px 12px}.transport #play{min-width:104px}.divider{height:24px;width:1px;background:var(--line);margin:0 8px}.verification-actions{display:flex;gap:6px}.verification-actions button{font-size:10px}.keyboard{margin-left:auto;color:var(--muted);font-size:9px;white-space:nowrap}kbd{font:9px var(--mono);padding:2px 4px;border:1px solid #2a3b47;border-radius:3px;color:var(--dim)}.footer-line{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:11px;padding-top:9px;border-top:1px solid #1c2a35}#inv{font-size:9px;margin:0;color:var(--muted)}#inv b{color:var(--ok);font-weight:400}#inv b.bad{color:var(--bad)}.fine{color:var(--muted);font-size:9px;margin:0;text-align:right}#tally:empty{display:none}#tally{font-size:10px;line-height:1.65;padding:9px 11px;background:#101d24;border:1px solid #28434b;border-radius:4px;color:var(--dim);margin:10px 0 0}#tally b{color:var(--cyan);font-weight:500}noscript{display:block;padding:20px;color:var(--warm)}.selftest-error{padding:10px 20px;background:#4a1c19;color:#fff;margin:0}.js-fallback{margin:20px;color:var(--dim)}
+@media(min-width:1800px){main{grid-template-columns:minmax(0,1fr) minmax(410px,26vw)}#wire{padding:30px 32px}.stage-head{padding:32px 40px 16px}.stage-head h2{font-size:34px}#pic{margin:0 25px}.tag{font-size:11px}.tag b{font-size:12px}.stage-head p,#wire .claim{font-size:12px}.steps li,.verdict,pre{font-size:11px}.json-view{max-height:35vh}}
+@media(max-width:1120px){.topbar{padding:0 20px}.top-note{font-size:10px;max-width:43ch}main{grid-template-columns:minmax(0,1fr) 360px}.stage-head{padding:20px 22px 10px}.stage-head p{max-width:34ch}.deck-label{display:none}.scenes button{gap:6px;padding:7px 8px;font-size:9px}footer{padding:13px 20px 10px}.quality>span,.keyboard{display:none}.fine{max-width:30ch}.stage-index{display:none}#readout{padding:13px 22px}#wire{padding:21px 20px}}
+@media(max-width:800px){.page{height:auto;min-height:100dvh;grid-template-rows:auto 1fr auto}.topbar{min-height:70px;padding:12px 18px}.top-note{display:none}.top-status{font-size:8px}.recording{font-size:8px}main{display:block;overflow:visible}#stage{border-right:0;border-bottom:1px solid var(--line)}.stage-head{padding:23px 22px 10px}.stage-head h2{font-size:25px}.stage-head p{max-width:none}.stage-index{display:block}#pic{height:clamp(300px,48vh,500px);margin:0 8px}#wire{overflow:visible;padding:24px 22px 28px}#wire h2{font-size:20px}.steps li{font-size:11px}.json-view{max-height:280px}footer{position:sticky;bottom:0;padding:10px 14px;box-shadow:0 -10px 35px #0008}.deck-top{gap:10px}.scenes{overflow-x:auto;scrollbar-width:none;padding:2px 2px 3px;min-width:0}.scenes button{flex:none;padding:6px 9px;font-size:9px;min-height:32px;gap:6px}.quality>span{display:none}#quality{max-width:64px;font-size:8px;padding:3px 6px}.timeline{padding:6px 0 8px;gap:8px}.timeline label{font-size:8px;width:43px}.bar{gap:6px}.transport button{min-height:35px;padding:6px 10px;min-width:34px}.transport #play{min-width:75px;font-size:10px}.verification-actions{gap:5px}.verification-actions button{min-height:35px;font-size:9px;padding:6px 8px}.divider{margin:0 2px;height:22px}.footer-line{margin-top:8px;padding-top:7px}.fine{display:none}#inv{font-size:8px}#tally{max-height:85px;overflow:auto;margin-top:8px;font-size:9px}}
+@media(max-width:420px){.topbar{gap:8px;padding:12px 15px}.topbar>div:last-child{min-width:0}.top-status{white-space:normal;max-width:20ch;justify-content:flex-end;text-align:right;font-size:7px}.brand{gap:10px}.brandmark{width:27px;height:27px}h1{font-size:15px}.brand small{font-size:8px}.recording{max-width:17ch;line-height:1.4}.stage-head{padding:20px 17px 10px;gap:8px}.stage-index{font-size:8px}.stage-head h2{font-size:22px}.stage-head p{font-size:10px}.legend{font-size:8px;gap:10px}.tag{font-size:8px}.tag b{font-size:9px;letter-spacing:.8px}#readout{padding:12px 17px}#counts{gap:8px}#counts span{font-size:8px;letter-spacing:0}#counts b{font-size:22px}#say{font-size:10px}#wire{padding:22px 17px}.transport{gap:4px}.transport button{padding:6px 8px}.transport #play{min-width:62px}.verification-actions button{padding:6px;font-size:8px}.divider{margin:0;width:0}.bar{gap:5px}footer{padding:9px 10px}.timeline output{font-size:9px;min-width:44px}}
+@media(min-width:801px) and (max-height:820px){.stage-head{padding:14px 24px 6px}.stage-head h2{font-size:23px;margin:4px 0}.stage-head p{font-size:10px}.legend{margin-top:7px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#controls">Skip to playback controls</a>
+<div class="page">
+<header class="topbar">
+  <div class="brand"><span class="brandmark" aria-hidden="true"></span><div><h1>weave chat</h1><small>THE SIGNATURE LAB</small></div></div>
+  <p class="top-note">A shared workspace for people and AI agents.<br>Every event has a story. Every signature has proof.</p>
+  <div><div class="top-status"><span class="status-dot" aria-hidden="true"></span>RECORDED RUN · LIVE VERIFICATION</div><span class="recording">CAPTURED <time id="when"></time></span></div>
+</header>
+<main>
+  <section id="stage" aria-label="Recorded system simulation">
+    <div class="stage-head"><div><span class="eyebrow">Anatomy of a trusted message</span><h2>Follow the event.</h2><p>A real gateway recording. The proof runs in your browser.</p><div class="legend" aria-hidden="true"><span><i>●</i> authenticated route</span><span><i class="amber">●</i> signed event</span><span><i>≋</i> message bus</span></div></div><div class="stage-index"><strong id="stage-scene">01</strong> / 05 SCENARIOS</div></div>
+    <div id="pic"><canvas id="c" role="img" aria-describedby="say" aria-label="The system drawn entirely in text characters: Ada, Scout and Ledger connect to the gateway, which signs an ordered event record. Its outbox forwards public events to the message bus. The text below explains the current step.">The system simulation is described in the live readout below.</canvas><div id="tags" aria-hidden="true"></div></div>
+    <div id="readout"><p id="counts" aria-label="Recorded state"></p><p id="say" aria-live="polite" aria-atomic="true"></p></div>
+  </section>
+  <section id="wire" aria-label="Event inspector"><p class="js-fallback">Loading the event inspector…</p></section>
+</main>
+<footer id="controls" aria-label="Simulation controls" tabindex="-1">
+  <div class="deck-top"><span class="deck-label">CHOOSE A SCENARIO</span><div class="scenes" role="group" aria-label="Scenes" id="scenes"></div><div class="quality"><span id="quality-status" aria-hidden="true">NATIVE DETAIL</span><button id="quality" type="button" aria-pressed="false" title="Keep the canvas in draft resolution">Draft mode</button></div></div>
+  <div class="timeline"><label for="timeline">TIMELINE</label><input id="timeline" type="range" min="0" max="17" value="0" step="1" aria-label="Recorded timeline"><output id="position" for="timeline">01 / 18</output></div>
+  <div class="bar"><div class="transport" role="group" aria-label="Playback"><button id="prev" type="button" title="Previous step (left arrow)" aria-label="Previous step">←</button><button id="play" class="primary" type="button" aria-pressed="false">▶ Play</button><button id="next" type="button" title="Next step (right arrow)" aria-label="Next step">→</button></div><span class="divider" aria-hidden="true"></span><div class="verification-actions" role="group" aria-label="Signature verification"><button id="all" type="button">Verify all signatures</button><button id="lie" type="button">Test the checker</button></div><span class="keyboard" aria-hidden="true"><kbd>←</kbd> <kbd>→</kbd> step &nbsp; <kbd>space</kbd> play</span></div>
+  <p id="tally" aria-live="polite" aria-atomic="true"></p>
+  <div class="footer-line"><p id="inv">Checking the recorded signatures…</p><p class="fine">REAL TRACE. LOCAL REPLAY. NOTHING CONTACTED.</p></div>
+  <p class="sr">Every cell of the picture is a text character. This run was recorded from the built gateway against a real message bus. Left and right arrow keys step through the recording when you are not using another control. Space starts and pauses playback. Draft mode uses fewer pixels; otherwise the canvas briefly uses draft detail during interaction and returns to your screen's native resolution.</p>
+</footer>
+</div>
+<noscript>This demonstration needs JavaScript for playback and live signature verification. No verification has run.</noscript>
+<script>
+(() => {
+"use strict";
+const TRACE = {"recorded_at":"2026-10-02T15:29:45.119Z","gateway_public_key_b64u":"StX8TEiEERLdQ1djJciWijzw48hEwiHnm9Y021mYVaE","key_id":"4afb187a5f7e19ed","signing":"Ed25519 over the JCS canonical JSON of the envelope without its sig field","scenes":[{"id":"signed-post","title":"A post becomes a signed, ordered event","claim":"The gateway signs every event with Ed25519 over canonical JSON. Anyone holding the gateway public key can check it.","test":"REG-NATS-01, AT-03","steps":[{"who":"ada","what":"posts in #lab-notes over HTTPS","state":{"messages":1,"events":1,"outbox":1,"published":0},"envelope":{"v":1,"id":"01M3YKRMD6M1WG64PTWM00KAC1","type":"message.created","ts":"2026-10-02T15:29:43.846Z","gateway_seq":1,"actor":"ada","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRMD5BMM62KB8DKCV16NA","body_md":"Reactor two is back to temperature.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"SlaUS2oFrBD1KhdevJ1Dpx5TJY-Gfu3O3CveT9im-bRdNUc1_W9iO2aKqsuMiy841m2xBo1Nk5FiPohyJO03AA"}},"subject":"chat.v1.evt.c_01DEMOPUBLIC000000000000000"},{"who":"gateway","what":"commits the message, the event and an outbox row in one transaction","state":{"messages":1,"events":1,"outbox":1,"published":0},"verified":true},{"who":"gateway","what":"publishes the event to the bus and records its sequence","state":{"messages":1,"events":1,"outbox":0,"published":1},"nats_seq":1},{"who":"scout","what":"receives the event and verifies the signature against the pinned key","state":{"messages":1,"events":1,"outbox":0,"published":1},"verified":true}]},{"id":"bus-outage","title":"The message bus goes down and comes back","claim":"An acknowledged write is never lost. Its event waits in the outbox and is published, in order, when the bus returns.","test":"AT-60, AT-61","steps":[{"who":"operator","what":"stops the message bus","state":{"messages":1,"events":1,"outbox":0,"published":1}},{"who":"ada","what":"posts while the bus is down: acknowledged","state":{"messages":2,"events":2,"outbox":1,"published":1},"envelope":{"v":1,"id":"01M3YKRMEYKW1J8A2JFE5V842K","type":"message.created","ts":"2026-10-02T15:29:43.902Z","gateway_seq":2,"actor":"ada","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRMEXFB9Y1YKASN1RT8AH","body_md":"Sample 14 looks contaminated.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"BKuV98WSjzCARJfW2C1oE_PCcEYUfxAq30KV18H0Jv739A8FXjPBeb3hNCXHp0G6bx5izXMQxZuYiHWoKyfFBw"}}},{"who":"scout","what":"posts while the bus is down: acknowledged","state":{"messages":3,"events":3,"outbox":2,"published":1},"envelope":{"v":1,"id":"01M3YKRMEZCCC61HC0E02Q42JY","type":"message.created","ts":"2026-10-02T15:29:43.903Z","gateway_seq":3,"actor":"scout","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRMEYKW1J8A2JFE5V842N","body_md":"Re-running the assay on sample 14.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"sDQJif4JKThc7LlpOIgtGXlCEJ5EQP50LH8zi6JKzure9zCD8C58twwtwwvnSSdn_prY4YkXCXbPadWDjS_BCg"}}},{"who":"ledger","what":"posts while the bus is down: acknowledged","state":{"messages":4,"events":4,"outbox":3,"published":1},"envelope":{"v":1,"id":"01M3YKRMEZCCC61HC0E02Q42K1","type":"message.created","ts":"2026-10-02T15:29:43.903Z","gateway_seq":4,"actor":"ledger","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRMEZCCC61HC0E02Q42K0","body_md":"Logged: sample 14 held, assay repeated.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"RBYWbgq86gR3dO4IjdMUAzPkE5GNwGY9lyuYLKuTXo3eYvWl3FPq92RKnG3pb7eQSXKQgn-f3bqgvipQLhPfCw"}}},{"who":"gateway","what":"cannot publish; three events wait in the outbox, in order","state":{"messages":4,"events":4,"outbox":3,"published":1},"waiting":[2,3,4]},{"who":"operator","what":"restarts the message bus","state":{"messages":4,"events":4,"outbox":3,"published":1}},{"who":"gateway","what":"drains the outbox; bus sequence follows gateway sequence","state":{"messages":4,"events":4,"outbox":0,"published":4},"gateway_seqs":[2,3,4],"nats_seqs":[2,3,4],"in_order":true}]},{"id":"retry","title":"A client retries the same write","claim":"The client-chosen ID makes a write idempotent. A retry returns the original message and creates nothing.","test":"AT-62","steps":[{"who":"scout","what":"posts with a client ID","state":{"messages":5,"events":5,"outbox":1,"published":4},"client_msg_id":"01M3YKRNEFVDMA4Z4C23E2MDR4","message_id":"01M3YKRNEFVDMA4Z4C23E2MDR5"},{"who":"scout","what":"times out and sends the same request again","state":{"messages":5,"events":5,"outbox":0,"published":5},"client_msg_id":"01M3YKRNEFVDMA4Z4C23E2MDR4","message_id":"01M3YKRNEFVDMA4Z4C23E2MDR5","same_message":true,"new_event":false}]},{"id":"forgery","title":"Someone writes to the bus directly","claim":"The bus is not trusted. An event that the gateway did not sign fails verification and is dropped.","test":"AT-03","steps":[{"who":"ada","what":"posts a genuine instruction","state":{"messages":6,"events":6,"outbox":0,"published":6},"envelope":{"v":1,"id":"01M3YKRNHNK391PQAJA4EVFPWA","type":"message.created","ts":"2026-10-02T15:29:45.013Z","gateway_seq":6,"actor":"ada","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRNHNK391PQAJA4EVFPW9","body_md":"Approve the batch.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"HUQe3UbpH5HLBsANIo6ugKN04RdThzWnO7DbvMpq3HpFogosdkRD5Z6bmVuG8vtw5UVb__13N9pKzIEgiwRDAQ"}},"verified":true},{"who":"intruder","what":"copies the event, changes the text and keeps the signature","state":{"messages":6,"events":6,"outbox":0,"published":6},"envelope":{"v":1,"id":"01M3YKRNHNK391PQAJA4EVFPWA","type":"message.created","ts":"2026-10-02T15:29:45.013Z","gateway_seq":6,"actor":"ada","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRNHNK391PQAJA4EVFPW9","body_md":"Discard the batch.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"HUQe3UbpH5HLBsANIo6ugKN04RdThzWnO7DbvMpq3HpFogosdkRD5Z6bmVuG8vtw5UVb__13N9pKzIEgiwRDAQ"}},"verified":false},{"who":"intruder","what":"signs the changed event with a key of their own","state":{"messages":6,"events":6,"outbox":0,"published":6},"envelope":{"v":1,"id":"01M3YKRNHNK391PQAJA4EVFPWA","type":"message.created","ts":"2026-10-02T15:29:45.013Z","gateway_seq":6,"actor":"ada","channel":"c_01DEMOPUBLIC000000000000000","redacted":false,"data":{"message_id":"01M3YKRNHNK391PQAJA4EVFPW9","body_md":"Discard the batch.","mentions":[],"attachments":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"JzfPa2LURoGX_S-WjujONw9rEl9khnsHXr-bsBQusV18g9nBh_UnHgO6s5OnBxmJpWES5696MKI257iiNaWPDQ"}},"verified":false}]},{"id":"private","title":"A private conversation stays off the bus","claim":"Events from private channels and direct messages are never published to the bus. They reach members only over the authenticated connection.","test":"v3 F3 server tests","steps":[{"who":"ada","what":"posts in a private channel","state":{"messages":7,"events":7,"outbox":0,"published":6},"envelope":{"v":1,"id":"01M3YKRNMWPTHD7FTGGMSW1G0Y","type":"message.created","ts":"2026-10-02T15:29:45.116Z","gateway_seq":7,"actor":"ada","channel":"c_01DEMOPRIVATE00000000000000","redacted":true,"data":{"message_id":"01M3YKRNMWPTHD7FTGGMSW1G0X","mentions":[]},"sig":{"alg":"ed25519","key_id":"4afb187a5f7e19ed","value":"rG9w7IaMpy_Et4tlWTmlSys2MT-3A7AJCv1GPGDL5nU9CA4hiNFLpY1B_Zss2QAIWKHXrcjWuRUovOEF2My0Bg"}},"events_added":1,"outbox_added":0},{"who":"gateway","what":"stores and signs the event, and writes no outbox row for it","state":{"messages":7,"events":7,"outbox":0,"published":6},"on_bus":false}]}],"jcs_selftest":{"canonical":"{\"actor\":\"ada\",\"channel\":\"c_01DEMOPUBLIC000000000000000\",\"data\":{\"attachments\":[],\"body_md\":\"Reactor two is back to temperature.\",\"mentions\":[],\"message_id\":\"01M3YKRMD5BMM62KB8DKCV16NA\"},\"gateway_seq\":1,\"id\":\"01M3YKRMD6M1WG64PTWM00KAC1\",\"redacted\":false,\"ts\":\"2026-10-02T15:29:43.846Z\",\"type\":\"message.created\",\"v\":1}"}};
+const TESTS = {"signed-post":[{"name":"REG-NATS-01 a successful NatsWorker publish drains outbox and records the message sequence","file":"test/fault/recovery.test.ts","source":"it('REG-NATS-01 a successful NatsWorker publish drains outbox and records the message sequence', async () => {\n    resetGuardsForTest();\n    const h = harness();\n    const natsServer = await startTestNats();\n    const stream = await addChatStream(8 * 1024 * 1024);\n    const worker = new NatsWorker(h.db, h.cfg);\n    try {\n      const message = postMessage(h.db, h.events, ada, h.channelId, {\n        body_md: 'nats worker regression',\n        client_msg_id: ulid()\n      }, {\n        maxChars: 40000,\n        floorLimit: 6,\n        floorPause: 600\n      });\n      expect(Number((h.db.prepare('SELECT COUNT(*) n FROM outbox').get() as { n: number }).n)).toBeGreaterThan(0);\n      await worker.start();\n      await waitFor(() => Number((h.db.prepare('SELECT COUNT(*) n FROM outbox').get() as { n: number }).n) === 0, 10000);\n      const sequence = h.db.prepare('SELECT event_id,message_id,nats_seq,type FROM event_seqs WHERE message_id=?').get(message.id) as {\n        event_id: string;\n        message_id: string;\n        nats_seq: number;\n        type: string;\n      } | undefined;\n      expect(sequence).toBeTruthy();\n      expect(sequence?.message_id).toBe(message.id);\n      expect(Number(sequence?.nats_seq)).toBeGreaterThan(0);\n      expect(sequence?.type).toBe('message.created');\n      const state = h.db.prepare('SELECT nats_state,nats_seq FROM messages WHERE id=?').get(message.id) as {\n        nats_state: string;\n        nats_seq: number;\n      };\n      expect(state.nats_state).toBe('published');\n      expect(Number(state.nats_seq)).toBe(Number(sequence?.nats_seq));\n    }\n    finally {\n      await worker.stop();\n      await stream.close();\n      await natsServer.stop();\n      h.close();\n    }\n  });"},{"name":"AT-03 forged event fails pinned gateway signature","file":"test/integration/security-logging.test.ts","source":"it('AT-03 forged event fails pinned gateway signature', () => {\n    const good = generateEd25519(), bad = generateEd25519();\n    const e = signEnvelope({\n      v: 1,\n      id: ulid(),\n      type: 'message.created',\n      ts: new Date().toISOString(),\n      gateway_seq: 1,\n      actor: 'scout',\n      channel: 'c_test',\n      redacted: false,\n      data: {}\n    }, bad.privatePem, bad.keyId);\n    expect(verifyEnvelope(e, good.publicRawB64u)).toBe(false);\n  });"}],"bus-outage":[{"name":"AT-60 acknowledged DB commit survives while NATS outbox remains pending","file":"test/fault/recovery.test.ts","source":"it('AT-60 acknowledged DB commit survives while NATS outbox remains pending', () => {\n    resetGuardsForTest();\n    const h = harness();\n    try {\n      const message = postMessage(h.db, h.events, ada, h.channelId, {\n        body_md: 'nats down',\n        client_msg_id: ulid()\n      }, {\n        maxChars: 40000,\n        floorLimit: 6,\n        floorPause: 600\n      });\n      expect(h.db.prepare('SELECT 1 FROM messages WHERE id=?').get(message.id)).toBeTruthy();\n      expect(Number((h.db.prepare('SELECT COUNT(*) n FROM outbox').get() as {\n        n: number;\n      }).n)).toBeGreaterThan(0);\n    }\n    finally {\n      h.close();\n    }\n  });"},{"name":"AT-61 ordered outbox sequence is monotonically increasing","file":"test/fault/recovery.test.ts","source":"it('AT-61 ordered outbox sequence is monotonically increasing', () => {\n    resetGuardsForTest();\n    const h = harness();\n    try {\n      for (let index = 0; index \u003c 20; index += 1) {\n        postMessage(h.db, h.events, ada, h.channelId, {\n          body_md: `m${index}`,\n          client_msg_id: ulid()\n        }, {\n          maxChars: 40000,\n          floorLimit: 6,\n          floorPause: 600\n        });\n      }\n      const sequences = (h.db.prepare('SELECT seq FROM outbox ORDER BY seq').all() as Array\u003c{\n        seq: number;\n      }>).map((row) => row.seq);\n      expect(sequences).toEqual([...sequences].sort((a, b) => a - b));\n    }\n    finally {\n      h.close();\n    }\n  });"}],"retry":[{"name":"AT-62 database remains integral and idempotent client ID prevents duplicates","file":"test/fault/recovery.test.ts","source":"it('AT-62 database remains integral and idempotent client ID prevents duplicates', () => {\n    resetGuardsForTest();\n    const h = harness();\n    try {\n      const clientId = ulid();\n      const first = postMessage(h.db, h.events, ada, h.channelId, {\n        body_md: 'persist',\n        client_msg_id: clientId\n      }, {\n        maxChars: 40000,\n        floorLimit: 6,\n        floorPause: 600\n      });\n      const retry = postMessage(h.db, h.events, ada, h.channelId, {\n        body_md: 'persist',\n        client_msg_id: clientId\n      }, {\n        maxChars: 40000,\n        floorLimit: 6,\n        floorPause: 600\n      });\n      expect(first.id).toBe(retry.id);\n      expect(Object.values(h.db.prepare('PRAGMA integrity_check').get() as object)).toContain('ok');\n    }\n    finally {\n      h.close();\n    }\n  });"}],"forgery":[{"name":"AT-03 forged event fails pinned gateway signature","file":"test/integration/security-logging.test.ts","source":"it('AT-03 forged event fails pinned gateway signature', () => {\n    const good = generateEd25519(), bad = generateEd25519();\n    const e = signEnvelope({\n      v: 1,\n      id: ulid(),\n      type: 'message.created',\n      ts: new Date().toISOString(),\n      gateway_seq: 1,\n      actor: 'scout',\n      channel: 'c_test',\n      redacted: false,\n      data: {}\n    }, bad.privatePem, bad.keyId);\n    expect(verifyEnvelope(e, good.publicRawB64u)).toBe(false);\n  });"}],"private":[{"name":"a PRIVATE-channel message.created writes NO outbox row","file":"test/integration/dm-events-not-on-shared-bus.test.ts","source":"it('a PRIVATE-channel message.created writes NO outbox row', () => {\n    const h = harness();\n    try {\n      const priv = createChannel(h.db, h.events, ada, 'ops-private', 'private', '');\n      h.db.prepare('DELETE FROM outbox').run();\n      postMessage(h.db, h.events, ada, priv.id, {\n        body_md: 'private roadmap',\n        client_msg_id: ulid(),\n      }, { maxChars: 40000, floorLimit: 6, floorPause: 600 });\n      const events = h.db.prepare(\"SELECT type FROM events WHERE channel_id=? AND type='message.created'\").all(priv.id);\n      expect(events).toHaveLength(1);\n      expect(outboxRowsForChannel(h, priv.id)).toEqual([]);\n      expect(outboxAll(h)).toEqual([]);\n    } finally {\n      h.close();\n    }\n  });"}]};
+const KINDS = {"signed-post":["post","commit","publish","deliver"],"bus-outage":["busdown","postdown","postdown","postdown","hold","busup","drain"],"retry":["retry1","retry2"],"forgery":["genuine","tamper","resign"],"private":["private","privdeliver"]};
+// ---------------------------------------------------------------- verification (live, WebCrypto)
+// This canonicalizer is retained from the recording. The self-test runs before any claim is made.
+function jcs(v) {
+  if (v === null) return "null";
+  if (typeof v === "boolean") return v ? "true" : "false";
+  if (typeof v === "string") return JSON.stringify(v);
+  if (typeof v === "number") { if (!Number.isSafeInteger(v)) throw new TypeError("JCS numbers must be safe integers"); return String(v); }
+  if (Array.isArray(v)) return "[" + v.map(jcs).join(",") + "]";
+  return "{" + Object.keys(v).sort((a,b) => a < b ? -1 : a > b ? 1 : 0).map(k => JSON.stringify(k) + ":" + jcs(v[k])).join(",") + "}";
+}
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/") + "===".slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+let keyPromise = null, cryptoState = "unknown", selftestOK = true;
+function gatewayKey() {
+  if (!keyPromise) keyPromise = (async () => {
+    try {
+      const k = await crypto.subtle.importKey("raw", unb64u(TRACE.gateway_public_key_b64u), {name:"Ed25519"}, false, ["verify"]);
+      cryptoState = "ok"; return k;
+    } catch { cryptoState = "unsupported"; return null; }
+  })();
+  return keyPromise;
+}
+async function verifyEnvelope(env) {
+  if (!selftestOK) return null;
+  const key = await gatewayKey(); if (!key) return null;
+  const { sig, ...unsigned } = env;
+  if (!sig || sig.alg !== "ed25519") return false;
+  try { return await crypto.subtle.verify({name:"Ed25519"}, key, unb64u(sig.value), new TextEncoder().encode(jcs(unsigned))); }
+  catch { return false; }
+}
+async function runAT03() {
+  if (!selftestOK) return {pass:null,text:"The canonical JSON self-check failed; this test was not run."};
+  try {
+    const gen = () => crypto.subtle.generateKey({name:"Ed25519"}, true, ["sign","verify"]);
+    const good = await gen(), bad = await gen();
+    const unsigned = {v:1,id:"01TESTRUNINBROWSER000000000",type:"message.created",ts:new Date().toISOString(),gateway_seq:1,actor:"scout",channel:"c_test",redacted:false,data:{}};
+    const bytes = new TextEncoder().encode(jcs(unsigned));
+    const sig = await crypto.subtle.sign({name:"Ed25519"}, bad.privateKey, bytes);
+    const againstPinned = await crypto.subtle.verify({name:"Ed25519"}, good.publicKey, sig, bytes);
+    const againstForger = await crypto.subtle.verify({name:"Ed25519"}, bad.publicKey, sig, bytes);
+    const pass = againstPinned === false && againstForger === true;
+    return {pass,text:pass ? "✓ Passed here, with two fresh keys: the forged event fails against the pinned key, and verifies only against the forger's own key." : "✗ The check did not behave as this test requires in this browser."};
+  } catch { return {pass:null,text:"This browser cannot generate or check Ed25519 keys, so this test was not run here."}; }
+}
+
+// ---------------------------------------------------------------- replay state and semantic inspector
+const $ = id => document.getElementById(id);
+const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
+let reduced = motionQuery.matches, si = 0, ti = 0, playing = false, playTimer = 0;
+let verifyTicket = 0, lastVerdict = null, sceneVersion = 0, tallyTicket = 0;
+const edits = new Map(), moments = TRACE.scenes.flatMap((sc,s) => sc.steps.map((_,t) => [s,t]));
+const scene = () => TRACE.scenes[si], step = () => scene().steps[ti], kind = () => KINDS[scene().id][ti];
+const esc = s => String(s).replace(/[&<>"']/g,c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const lerp = (a,b,t) => a + (b-a)*t, clamp = v => Math.max(0,Math.min(1,v)), smooth = t => t*t*(3-2*t);
+function envNow() {
+  const env = step().envelope, key = si+":"+ti;
+  return env && edits.has(key) ? {...env,data:{...env.data,body_md:edits.get(key)}} : env || null;
+}
+function busUp() {
+  const kinds = KINDS[scene().id]; let up = true;
+  for (let i=0;i<=ti;i++) { if(kinds[i]==="busdown") up=false; if(kinds[i]==="busup") up=true; }
+  return up;
+}
+// Escape the complete JSON before adding syntax spans; edited strings can never become HTML.
+function envHtml(env) {
+  return esc(JSON.stringify(env,null,2)).replace(/(^\s*)(&quot;[a-z_]+&quot;)(:)/gm,'$1<span class="k">$2</span>$3');
+}
+const FACT_LABELS = {nats_seq:"bus sequence",waiting:"waiting, by gateway sequence",gateway_seqs:"gateway sequence",nats_seqs:"bus sequence",in_order:"published in order",client_msg_id:"client ID",message_id:"message",same_message:"same message returned",new_event:"new event created",events_added:"events written",outbox_added:"outbox rows written",on_bus:"reached the bus",subject:"bus subject"};
+function factsHtml(s) {
+  const rows = Object.keys(FACT_LABELS).filter(k => k in s).map(k => `<dt>${FACT_LABELS[k]}</dt><dd>${esc(Array.isArray(s[k]) ? s[k].join(", ") : s[k]===true ? "yes" : s[k]===false ? "no" : s[k])}</dd>`);
+  return rows.length ? `<dl class="facts">${rows.join("")}</dl>` : "";
+}
+function renderWire() {
+  const sc=scene(), s=step(), env=s.envelope, key=si+":"+ti, editable=env && typeof env.data?.body_md === "string";
+  $("wire").innerHTML = `<div class="wire-kicker"><span>Event inspector</span>STEP ${String(ti+1).padStart(2,"0")} / ${String(sc.steps.length).padStart(2,"0")}</div>` +
+    `<h2>${esc(sc.title)}</h2><p class="claim">${esc(sc.claim)}</p>` +
+    `<ol class="steps" aria-label="Scenario steps">${sc.steps.map((x,i) => `<li class="${i===ti ? "now" : i>ti ? "later" : ""}"${i===ti ? ' aria-current="step"' : ''}><span><span class="who">${esc(x.who)}</span> ${esc(x.what)}</span></li>`).join("")}</ol>` +
+    (env ? `<div class="envelope"><div class="event-meta"><h3>THE EVENT, AS SIGNED</h3><span class="chip">Ed25519</span></div><pre id="envpre" class="json-view" tabindex="0" aria-label="Signed event JSON"></pre>` +
+    (editable ? `<div class="edit"><label for="body">Change the message. Challenge the signature.</label><input id="body" type="text" autocomplete="off" spellcheck="false" aria-describedby="verdict"><button id="restore" type="button">Restore</button></div>` : `<p class="hint">Private payload redacted. This recorded envelope contains no message text.</p>`) +
+    `<p class="verdict na" id="verdict" aria-live="polite" aria-atomic="true">Checking the signature in your browser…</p></div>` : "") + factsHtml(s) +
+    (TESTS[sc.id] || []).map(x => `<details><summary>The test behind this: ${esc(x.name)}</summary><p class="src">${esc(x.file)}</p><pre tabindex="0">${esc(x.source)}</pre>` +
+      (x.name.startsWith("AT-03") ? `<div class="edit"><button type="button" class="runtest">Run this test here</button><span class="verdict na" data-out aria-live="polite"></span></div>` : "") + `</details>`).join("");
+  for (const b of $("wire").querySelectorAll(".runtest")) b.addEventListener("click",async () => {
+    const out=b.parentElement.querySelector("[data-out]"); b.disabled=true; out.textContent="Running with fresh keys…";
+    const r=await runAT03(); if(!out.isConnected) return;
+    b.disabled=false; out.className="verdict "+(r.pass===null ? "na" : r.pass ? "ok" : "bad"); out.textContent=r.text;
+  });
+  if (editable) {
+    const input=$("body"); input.value=edits.has(key) ? edits.get(key) : env.data.body_md;
+    input.addEventListener("input",() => { input.value===env.data.body_md ? edits.delete(key) : edits.set(key,input.value); refreshEnvelope(); });
+    $("restore").addEventListener("click",() => { edits.delete(key); input.value=env.data.body_md; refreshEnvelope(); input.focus(); });
+  }
+  if(env) refreshEnvelope();
+}
+async function refreshEnvelope() {
+  const env=envNow(), ticket=++verifyTicket, key=si+":"+ti, verdict=$("verdict"); if(!env || !verdict) return;
+  $("envpre").innerHTML=envHtml(env);
+  if($("restore")) $("restore").disabled=!edits.has(key);
+  lastVerdict=null; verdict.className="verdict na"; verdict.textContent="Checking the signature in your browser…";
+  const ok=await verifyEnvelope(env);
+  // Navigation and edits both invalidate pending verification, including moves to an envelope-free step.
+  if(ticket!==verifyTicket || key!==si+":"+ti || !verdict.isConnected) return;
+  lastVerdict=ok;
+  if(ok===null) { verdict.className="verdict na"; verdict.textContent=selftestOK ? "Live verification unavailable: this browser cannot check Ed25519 signatures. No signature was checked here." : "Verification disabled: the canonical JSON self-check failed."; }
+  else if(ok) { verdict.className="verdict ok"; verdict.textContent="✓ Signature verified against the gateway's public key. Checked by your browser just now."; }
+  else { verdict.className="verdict bad"; verdict.textContent=edits.has(key) ? "✕ Signature rejected. The text is no longer what the gateway signed." : "✕ Signature rejected. This event does not verify against the pinned gateway key and is dropped."; }
+  requestDraw();
+}
+function go(nsi,nti) {
+  ++verifyTicket; lastVerdict=null;
+  si=Math.max(0,Math.min(TRACE.scenes.length-1,nsi)); ti=Math.max(0,Math.min(scene().steps.length-1,nti)); ++sceneVersion;
+  [...$("scenes").children].forEach((b,i) => b.setAttribute("aria-current",i===si ? "true":"false"));
+  const pos=moments.findIndex(([s,t]) => s===si && t===ti), st=step().state;
+  $("prev").disabled=pos===0; $("next").disabled=pos===moments.length-1;
+  $("timeline").value=pos; $("timeline").style.setProperty("--progress",(pos/(moments.length-1)*100)+"%");
+  $("timeline").setAttribute("aria-valuetext",`${scene().title}, step ${ti+1} of ${scene().steps.length}: ${step().who} ${step().what}`);
+  $("position").textContent=String(pos+1).padStart(2,"0")+" / "+moments.length;
+  $("stage-scene").textContent=String(si+1).padStart(2,"0");
+  $("say").innerHTML=`<span class="who">${esc(step().who)}</span> ${esc(step().what)}`;
+  $("counts").innerHTML=`<span><b>${st.messages}</b>messages</span><span><b>${st.events}</b>signed events</span><span class="queued"><b>${st.outbox}</b>in outbox</span><span><b>${st.published}</b>published</span>`;
+  $("counts").setAttribute("aria-label",`${st.messages} messages, ${st.events} signed events, ${st.outbox} waiting in outbox, ${st.published} published. Message bus ${busUp() ? "up":"down"}.`);
+  renderWire(); startStep(); placeTags();
+  if(pos===moments.length-1 && playing) setPlaying(false);
+}
+function nextStep() { if(ti<scene().steps.length-1) go(si,ti+1); else if(si<TRACE.scenes.length-1) go(si+1,0); else setPlaying(false); }
+function prevStep() { if(ti>0) go(si,ti-1); else if(si>0) go(si-1,TRACE.scenes[si-1].steps.length-1); }
+function setPlaying(on) {
+  if(on && si===TRACE.scenes.length-1 && ti===scene().steps.length-1) go(0,0);
+  playing=on; $("play").setAttribute("aria-pressed",String(on)); $("play").textContent=on ? "Ⅱ Pause":"▶ Play";
+  clearInterval(playTimer); if(on) playTimer=setInterval(nextStep,reduced ? 3200:2600);
+}
+async function verifyAll() {
+  const ticket=++tallyTicket; $("tally").textContent="Checking every original recorded envelope…";
+  let n=0, ok=0, bad=0, na=0; const failed=[];
+  for(const sc of TRACE.scenes) for(const s of sc.steps) if(s.envelope) {
+    n++; const r=await verifyEnvelope(s.envelope);
+    if(r===null) na++; else if(r) ok++; else {bad++;failed.push(`${s.who} ${s.what}`);}
+  }
+  if(ticket!==tallyTicket) return;
+  $("tally").innerHTML=na ? `Live verification unavailable; <b>${n}</b> recorded envelopes were not checked.` : `<b>${n}</b> recorded envelopes checked: <b>${ok} verified</b>, <b>${bad} rejected</b>. The rejected events are the forgeries (${esc(failed.join("; "))}). Your local edits do not change the original recording.`;
+}
+async function testChecker() {
+  const ticket=++tallyTicket; $("tally").textContent="Flipping one signature bit and checking both versions…";
+  const env=TRACE.scenes[0].steps[0].envelope, raw=unb64u(env.sig.value); raw[7]^=1;
+  const b64u=btoa(String.fromCharCode(...raw)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+  const lied={...env,sig:{...env.sig,value:b64u}}, honest=await verifyEnvelope(env), caught=await verifyEnvelope(lied);
+  if(ticket!==tallyTicket) return;
+  $("tally").innerHTML=honest===null ? "Live Ed25519 verification unavailable. The checker could not be tested." : honest===true && caught===false ? "Checker passed: the untouched signature <b>verifies</b>. Flipping one bit makes the altered signature <b>fail</b>." : "<b>The checker did not behave correctly.</b> Do not rely on this browser's results.";
+}
+const inv={held:0,broken:0,list:[],next:0,busy:false};
+for(const sc of TRACE.scenes) for(const s of sc.steps) if(s.envelope) inv.list.push({env:s.envelope,expect:s.who!=="intruder"});
+async function invariantTick() {
+  if(document.hidden || inv.busy) return;
+  inv.busy=true;
+  try {
+    const item=inv.list[inv.next++%inv.list.length], got=await verifyEnvelope(item.env);
+    if(got===null) {$("inv").textContent=selftestOK ? "INVARIANT UNCHECKED · Ed25519 unavailable":"INVARIANT UNCHECKED · self-check failed";return;}
+    got===item.expect ? inv.held++ : inv.broken++;
+    $("inv").innerHTML=`INVARIANT · signed events verify, forgeries fail &nbsp; <b>${inv.held} held</b> / <b${inv.broken ? ' class="bad"':""}>${inv.broken} broken</b>`;
+  } finally {inv.busy=false;}
+}
+
+// ---------------------------------------------------------------- the text-cell renderer
+// A small glyph atlas is rasterized once per resolution. Static scene lighting is cached;
+// each frame repaints only cells touched by the moving packet and bus, not the whole screen.
+const canvas=$("c"), ctx=canvas.getContext("2d",{alpha:false});
+const MAT=[null,
+  {g:"  .·:+",c:[.28,.43,.47]}, {g:".:-=+#@",c:[.48,.84,.84]},
+  {g:" .'|!|I",c:[.25,.56,.60]}, {g:".-=≡≡##",c:[.95,.71,.42]},
+  {g:".·:oO0@",c:[.73,.91,.87]}, {g:" .~~≈≈≋",c:[.35,.75,.81]},
+  {g:" ..··..",c:[.49,.30,.30]}, {g:".-=≡≡##",c:[.54,.78,.97]},
+  {g:".x×xX##",c:[.98,.48,.36]}, {g:".:-=##@",c:[.95,.71,.42]},
+  {g:".·•*✦✦@",c:[1,.87,.62]}, {g:".·:=+*#",c:[.66,.88,.53]}
+];
+const U={w:100,h:60}, P={ada:[16,11],scout:[50,11],ledger:[84,11],gateway:[50,26],outbox:[80,28],bus:[50,53],intruder:[9,44]};
+const LEVELS=24, atlas=document.createElement("canvas"), actx=atlas.getContext("2d",{alpha:false});
+let W=0,H=0,CW=6,CH=11,DPR=1,scale=1,mat,dep,emi,baseTokens,displayTokens,overlayTokens,dirtyMark;
+let atlasW=0,atlasH=0,xEdges,yEdges,staticLights=[],staticKey="",oldDynamic=[],currentDynamic=[],dirtyIndices=[],epoch=0,drawQueued=false,needsResize=true;
+let lastBoxWidth=0,lastBoxHeight=0,forcedDraft=false,resolutionQuery=null;
+let busPatterns=[],busFirstRow=0,busLastRow=0;
+const activePointers=new Set(),activeKeys=new Set();
+const isDraft=() => forcedDraft || activePointers.size>0 || activeKeys.size>0;
+const ux=u => Math.round(u/U.w*(W-1)), uy=v => Math.round(v/U.h*(H-1));
+const anim={p:1,t0:0,tAnim:0,last:0,raf:0,head:null,path:[],distance:0};
+function resize() {needsResize=true;requestDraw();}
+function applyResolution() {
+  const r=canvas.getBoundingClientRect(), draft=isDraft();
+  const realDPR=window.devicePixelRatio || 1, targetScale=draft ? Math.min(realDPR,1)*.8 : realDPR;
+  if(r.width<=0 || r.height<=0) return;
+  if(W && DPR===realDPR && scale===targetScale && Math.abs(r.width-lastBoxWidth)<.5 && Math.abs(r.height-lastBoxHeight)<.5) {needsResize=false;return;}
+  needsResize=false; DPR=realDPR; scale=targetScale; lastBoxWidth=r.width;lastBoxHeight=r.height;
+  CW=draft ? 8 : r.width>700 ? 6.3:5.6; CH=CW*1.82;
+  W=Math.max(32,Math.floor(r.width/CW));H=Math.max(22,Math.floor(r.height/CH));
+  // Native mode deliberately has no DPR cap: the backing store matches every physical pixel.
+  canvas.width=Math.max(1,Math.round(r.width*scale));canvas.height=Math.max(1,Math.round(r.height*scale));
+  canvas.dataset.resolution=draft ? "draft":"native";canvas.dataset.dpr=String(DPR);canvas.dataset.renderScale=String(scale);
+  canvas.style.opacity=draft && !reduced ? ".88":"1";
+  $("quality-status").textContent=draft ? "DRAFT DETAIL":"NATIVE DETAIL";
+  $("quality").setAttribute("aria-pressed",String(forcedDraft));
+  const n=W*H;mat=new Uint8Array(n);dep=new Int8Array(n);emi=new Float32Array(n);
+  baseTokens=new Uint16Array(n);displayTokens=new Uint16Array(n);overlayTokens=new Uint16Array(n);dirtyMark=new Uint32Array(n);
+  xEdges=Int32Array.from({length:W+1},(_,i)=>Math.round(i*canvas.width/W));
+  yEdges=Int32Array.from({length:H+1},(_,i)=>Math.round(i*canvas.height/H));
+  oldDynamic=[];currentDynamic=[];epoch=0;staticKey="";busPatterns=[];
+  busFirstRow=uy(P.bus[1]-1.8);busLastRow=uy(P.bus[1]+1.8);
+  createAtlas(); placeTags();
+}
+function createAtlas() {
+  atlasW=Math.ceil(canvas.width/W);atlasH=Math.ceil(canvas.height/H);
+  atlas.width=atlasW*LEVELS;atlas.height=atlasH*(MAT.length-1);
+  actx.fillStyle="#05060a";actx.fillRect(0,0,atlas.width,atlas.height);
+  actx.font=`${Math.max(5,atlasH*.94)}px ui-monospace,Menlo,Consolas,"DejaVu Sans Mono",monospace`;
+  actx.textBaseline="alphabetic";actx.textAlign="center";
+  for(let m=1;m<MAT.length;m++) for(let l=0;l<LEVELS;l++) {
+    const M=MAT[m],lum=l/(LEVELS-1),g=M.g[Math.min(M.g.length-1,Math.floor(lum*M.g.length))];
+    actx.fillStyle=`rgb(${Math.round(M.c[0]*255*lum)},${Math.round(M.c[1]*255*lum)},${Math.round(M.c[2]*255*lum)})`;
+    actx.fillText(g,(l+.5)*atlasW,(m-1+.8)*atlasH,atlasW);
+  }
+  ctx.imageSmoothingEnabled=false;
+}
+const token=(m,l) => m ? 1+(m-1)*LEVELS+Math.round(clamp(l)*(LEVELS-1)):0;
+function paintCell(i,t) {
+  const x=i%W,y=(i/W)|0,dx=xEdges[x],dy=yEdges[y],dw=xEdges[x+1]-dx,dh=yEdges[y+1]-dy;
+  if(t) {const k=t-1;ctx.drawImage(atlas,(k%LEVELS)*atlasW,Math.floor(k/LEVELS)*atlasH,atlasW,atlasH,dx,dy,dw,dh);}
+  else {ctx.fillStyle="#05060a";ctx.fillRect(dx,dy,dw,dh);}
+  displayTokens[i]=t;
+}
+function put(x,y,m,d,e=0) {if(x<0||y<0||x>=W||y>=H)return;const i=y*W+x;if(d<dep[i])return;mat[i]=m;dep[i]=d;emi[i]=e;}
+function rect(a,b,c,d,m,z,e) {for(let y=uy(b);y<=uy(d);y++)for(let x=ux(a);x<=ux(c);x++)put(x,y,m,z,e);}
+function hline(a,b,v,m,z,e,gap) {const y=uy(v);for(let x=ux(a);x<=ux(b);x++)if(!gap||((x*7+y*3)%gap))put(x,y,m,z,e);}
+function disc(u,v,r,m,z,e) {
+  const X=ux(u),Y=uy(v),rx=Math.max(1,Math.round(r/U.w*W)),ry=Math.max(1,Math.round(rx*CW/CH));
+  for(let y=-ry;y<=ry;y++)for(let x=-rx;x<=rx;x++)if(x*x/(rx*rx)+y*y/(ry*ry)<=1)put(X+x,Y+y,m,z,e);
+}
+function clothRows() {
+  const rows=[];let count=0;
+  for(let a=0;a<=si;a++)for(let b=0;b<=(a===si ? ti:TRACE.scenes[a].steps.length-1);b++) {
+    const s=TRACE.scenes[a].steps[b],k=KINDS[TRACE.scenes[a].id][b];
+    // State increments include retry1's event even though that step has no recorded envelope.
+    while(count<s.state.events){count++;rows.push({priv:k==="private",cur:a===si&&b===ti});}
+  }
+  return rows.slice(-9);
+}
+function buildStatic() {
+  mat.fill(0);dep.fill(-1);emi.fill(0);staticLights=[];
+  const s=step(),k=kind(),st=s.state;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if((x*13+y*29)%19===0)put(x,y,1,0,.28);
+  for(const id of ["ada","scout","ledger"]) {
+    const [u,v]=P[id],active=s.who===id||(k==="deliver"&&id==="scout");
+    if(id==="ada"){disc(u,v-3.4,1.5,5,2,active?.75:.43);rect(u-2.2,v-1.2,u+2.2,v+2.8,5,2,active?.6:.32);}
+    else{rect(u-2.8,v-4.6,u+2.8,v+2.8,2,2,active?.6:.3);disc(u,v-.9,1.3,11,3,active?.92:.6);}
+    // Faint character routes give the packet a readable space to travel through.
+    const route=viaGate(id);for(let j=0;j<route.length-1;j++) {
+      const [a,b]=route[j],[c,d]=route[j+1],n=Math.max(1,Math.round(Math.hypot(ux(c)-ux(a),uy(d)-uy(b))));
+      for(let q=0;q<=n;q++)if(q%3===0)put(ux(lerp(a,c,q/n)),uy(lerp(b,d,q/n)),3,1,.25);
+    }
+    staticLights.push({u,v,r:active?18:10,i:active?.6:.26});
+  }
+  const [gu,gv]=P.gateway;
+  rect(gu-15,gv-6,gu+15,gv-4.4,2,3,.52);rect(gu-15,gv-6,gu-13.6,gv+22,2,3,.4);rect(gu+13.6,gv-6,gu+15,gv+22,2,3,.4);
+  for(let u=gu-12;u<=gu+12;u+=2)for(let y=uy(gv-4);y<=uy(gv+22);y++)put(ux(u),y,3,1,.22);
+  clothRows().forEach((r,i)=>{const v=gv-2.6+i*2.5;hline(gu-12.6,gu+12.6,v,r.priv?8:4,4,r.cur?.88:.68);hline(gu-12.6,gu+12.6,v+.9,r.priv?8:4,4,r.cur?.67:.4,3);});
+  staticLights.push({u:gu,v:gv+4,r:20,i:s.who==="gateway"?.65:.35});
+  const [ou,ov]=P.outbox;
+  rect(ou-5,ov-6,ou+5,ov-5.2,2,3,.33);rect(ou-5,ov+9,ou+5,ov+9.8,2,3,.33);
+  for(let i=0;i<Math.min(st.outbox,5);i++)rect(ou-3.8,ov+6.6-i*2.9,ou+3.8,ov+8-i*2.9,10,4,.85);
+  if(st.outbox)staticLights.push({u:ou,v:ov+2,r:11,i:.3+.15*st.outbox});
+  if(k==="tamper"||k==="resign") {const[iu,iv]=P.intruder;disc(iu,iv-3,2,9,3,.75);rect(iu-2.4,iv-.6,iu+2.4,iv+3,9,3,.58);}
+  // Lighting is solved only when the recorded state or grid changes, then stored as atlas tokens.
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++) {
+    const i=y*W+x;if(!mat[i]){baseTokens[i]=0;continue;}
+    let lum=emi[i];
+    for(const L of staticLights){const dx=x/W*100-L.u,dy=(y/H*60-L.v)*1.15;lum+=L.i/(1+(dx*dx+dy*dy)/(L.r*L.r)*6)*.3;}
+    baseTokens[i]=token(mat[i],lum);
+  }
+  ctx.fillStyle="#05060a";ctx.fillRect(0,0,canvas.width,canvas.height);displayTokens.fill(0);
+  for(let i=0;i<baseTokens.length;i++)if(baseTokens[i])paintCell(i,baseTokens[i]);
+  oldDynamic=[];staticKey=String(sceneVersion);
+}
+function touch(i) {
+  if(dirtyMark[i]===epoch)return;
+  dirtyMark[i]=epoch;dirtyIndices.push(i);overlayTokens[i]=baseTokens[i];
+}
+function dynamicPut(x,y,m,lum) {
+  if(x<0||y<0||x>=W||y>=H)return;
+  const i=y*W+x;touch(i);overlayTokens[i]=token(m,lum);currentDynamic.push(i);
+}
+function dynamicDisc(u,v,r,m,lum) {
+  const X=ux(u),Y=uy(v),rx=Math.max(1,Math.round(r/100*W)),ry=Math.max(1,Math.round(rx*CW/CH));
+  for(let y=-ry;y<=ry;y++)for(let x=-rx;x<=rx;x++)if(x*x/(rx*rx)+y*y/(ry*ry)<=1)dynamicPut(X+x,Y+y,m,lum);
+}
+const viaGate=id => id==="scout" ? [[P.scout[0],14],[P.gateway[0],21]] : [[P[id][0],14],[P[id][0],17.5],[P.gateway[0],17.5],[P.gateway[0],21]];
+const PATHS={
+  post:s=>viaGate(s.who),postdown:s=>viaGate(s.who),retry1:s=>viaGate(s.who),genuine:s=>viaGate(s.who),
+  retry2:s=>[...viaGate(s.who),[P[s.who][0],14]],
+  publish:()=>[[P.gateway[0]+14,31],[P.outbox[0],31],[P.outbox[0],44],[P.outbox[0],P.bus[1]]],
+  drain:()=>[[P.gateway[0]+14,31],[P.outbox[0],31],[P.outbox[0],44],[P.outbox[0],P.bus[1]],[20,P.bus[1]]],
+  deliver:()=>[[P.outbox[0],P.bus[1]],[68,P.bus[1]],[68,15.5],[P.scout[0]+5,15.5],[P.scout[0]+5,13.5]],
+  tamper:()=>[[P.intruder[0],47],[P.intruder[0],P.bus[1]],[32,P.bus[1]],[32,15.5],[P.scout[0]-5,15.5],[P.scout[0]-5,13.5]],
+  resign:()=>[[P.intruder[0],47],[P.intruder[0],P.bus[1]],[32,P.bus[1]],[32,15.5],[P.scout[0]-5,15.5],[P.scout[0]-5,13.5]],
+  private:()=>viaGate("ada"),privdeliver:()=>[[P.gateway[0],21],[P.gateway[0],14]]
+};
+// Rounded route corners are quadratic interpolation between neighboring line segments.
+// Resampling by arc length makes motion independent of segment length and display refresh rate.
+function smoothPath(raw) {
+  if(!raw || raw.length<2)return [];
+  const points=[raw[0]];
+  for(let i=1;i<raw.length-1;i++) {
+    const a=raw[i-1],b=raw[i],c=raw[i+1];
+    const ab=Math.hypot(b[0]-a[0],b[1]-a[1]),bc=Math.hypot(c[0]-b[0],c[1]-b[1]);
+    const radius=Math.min(2.2,ab*.24,bc*.24),before=[lerp(b[0],a[0],radius/ab),lerp(b[1],a[1],radius/ab)],after=[lerp(b[0],c[0],radius/bc),lerp(b[1],c[1],radius/bc)];
+    points.push(before);
+    for(let j=1;j<=8;j++){const t=j/8;points.push([lerp(lerp(before[0],b[0],t),lerp(b[0],after[0],t),t),lerp(lerp(before[1],b[1],t),lerp(b[1],after[1],t),t)]);}
+  }
+  points.push(raw[raw.length-1]);let length=0;
+  return points.map((p,i)=>{if(i)length+=Math.hypot(p[0]-points[i-1][0],p[1]-points[i-1][1]);return {u:p[0],v:p[1],d:length};});
+}
+function pointOnPath(distance) {
+  const points=anim.path;
+  for(let i=1;i<points.length;i++)if(points[i].d>=distance) {
+    const a=points[i-1],b=points[i],q=(distance-a.d)/(b.d-a.d||1);
+    return {u:lerp(a.u,b.u,q),v:lerp(a.v,b.v,q)};
+  }
+  return points[points.length-1];
+}
+function startStep() {
+  anim.t0=performance.now();anim.p=reduced?1:0;
+  anim.path=smoothPath(PATHS[kind()]?.(step()));anim.distance=anim.path.at(-1)?.d||0;
+  anim.head=anim.path.length ? {...anim.path[0]}:null;requestDraw();
+}
+// The bus repeats a short character wave. Cache phase tiles lazily, then blend
+// adjacent phases: two patterned fills replace thousands of per-cell draw calls.
+// Native DPR is retained in every tile; packet overlays still use exact cells.
+function busPattern(phase) {
+  if(busPatterns[phase])return busPatterns[phase];
+  const cols=28,rows=busLastRow-busFirstRow+1,off=phase===32;
+  const tile=document.createElement("canvas");
+  tile.width=Math.max(1,Math.round(canvas.width/W*cols));
+  tile.height=yEdges[busLastRow+1]-yEdges[busFirstRow];
+  const target=tile.getContext("2d",{alpha:false});target.imageSmoothingEnabled=false;
+  for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+    const lum=off?.36:.43+.19*Math.sin(x/cols*Math.PI*2+(y+busFirstRow)*.8-phase/32*Math.PI*2);
+    const t=token(off?7:6,lum)-1;
+    const dx=Math.round(x*tile.width/cols),right=Math.round((x+1)*tile.width/cols);
+    const dy=yEdges[busFirstRow+y]-yEdges[busFirstRow],bottom=yEdges[busFirstRow+y+1]-yEdges[busFirstRow];
+    target.drawImage(atlas,(t%LEVELS)*atlasW,Math.floor(t/LEVELS)*atlasH,atlasW,atlasH,dx,dy,right-dx,bottom-dy);
+  }
+  return busPatterns[phase]=ctx.createPattern(tile,"repeat-x");
+}
+function paintBus(up) {
+  const phase=anim.tAnim*2.2/(Math.PI*2)*32,base=Math.floor(phase),fraction=phase-base;
+  const first=up?base%32:32,second=(base+1)%32;
+  const y=yEdges[busFirstRow],height=yEdges[busLastRow+1]-y;
+  ctx.save();ctx.translate(0,y);ctx.fillStyle=busPattern(first);ctx.fillRect(0,0,canvas.width,height);
+  if(up&&fraction>0){ctx.globalAlpha=fraction;ctx.fillStyle=busPattern(second);ctx.fillRect(0,0,canvas.width,height);}
+  ctx.restore();
+}
+const inBus=i=>i>=busFirstRow*W&&i<(busLastRow+1)*W;
+function paintDynamic(now,dt) {
+  ++epoch;dirtyIndices=[];currentDynamic=[];
+  for(const i of oldDynamic)if(!inBus(i))touch(i);
+  const up=busUp(),bv=P.bus[1],st=step().state,k=kind();
+  paintBus(up);
+  for(let i=0;i<Math.min(st.published,12);i++)dynamicDisc(96-i*6.2-(up ? (anim.tAnim*1.4)%6.2:0),bv,.9,11,up?.92:.35);
+  if(anim.path.length) {
+    const f=reduced?1:smooth(anim.p),target=pointOnPath(f*anim.distance);
+    // Exponential lerp is time-correct: the same weighted response at 30, 60 or 144 Hz.
+    const blend=reduced||anim.p>=1 ? 1:1-Math.exp(-dt/36);
+    anim.head.u=lerp(anim.head.u,target.u,blend);anim.head.v=lerp(anim.head.v,target.v,blend);
+    const m=k==="tamper"||k==="resign"||lastVerdict===false ? 9:k==="private"||k==="privdeliver" ? 8:11;
+    const end=f*anim.distance;
+    for(let d=0;d<=end;d+=.45){const p=pointOnPath(d);dynamicPut(ux(p.u),uy(p.v),m,.56);}
+    dynamicDisc(anim.head.u,anim.head.v,1.45,m,.97);
+    if(f>=1&&(k==="deliver"||k==="genuine")&&lastVerdict===true)dynamicDisc(P.scout[0]+9,P.scout[1]-1,1.4,12,.91);
+  }
+  for(const i of dirtyIndices)if(inBus(i)||displayTokens[i]!==overlayTokens[i])paintCell(i,overlayTokens[i]);
+  oldDynamic=currentDynamic;
+}
+function requestDraw() {
+  if(drawQueued || document.hidden)return;
+  drawQueued=true;anim.raf=requestAnimationFrame(frame);
+}
+function frame(now) {
+  drawQueued=false;const started=performance.now();
+  if(DPR!==(window.devicePixelRatio||1))needsResize=true;
+  applyResolution();if(!W || !H)return;
+  const dt=Math.min(80,Math.max(0,now-(anim.last||now)));anim.last=now;
+  anim.p=reduced?1:clamp((now-anim.t0)/1450);
+  const flowing=!reduced&&busUp()&&now-anim.t0<60000;
+  if(flowing)anim.tAnim+=dt/1000;
+  if(staticKey!==String(sceneVersion))buildStatic();
+  paintDynamic(now,dt);
+  canvas.dataset.frameWorkMs=(performance.now()-started).toFixed(2);
+  if(anim.p<1||flowing)requestDraw();
+}
+const tagEls={};
+function placeTags() {
+  const items={ada:[P.ada[0],4.5,"ADA","person"],scout:[P.scout[0],4.5,"SCOUT","AI agent"],ledger:[P.ledger[0],4.5,"LEDGER","AI agent"],gateway:[23.5,25,"GATEWAY","signs + orders"],outbox:[P.outbox[0],41.2,"OUTBOX",`${step().state.outbox} waiting`],bus:[50,56,"MESSAGE BUS",busUp()?`${step().state.published} published`:"offline · events held"]};
+  for(const[id,[u,v,title,desc]]of Object.entries(items)) {
+    if(!tagEls[id]){tagEls[id]=document.createElement("div");$("tags").appendChild(tagEls[id]);}
+    const el=tagEls[id];el.className="tag"+(id==="gateway"?" gate":"")+(step().who===id||id==="outbox"&&step().state.outbox>0?" on":"")+(id==="bus"&&!busUp()?" down":"");
+    el.innerHTML=`<b>${title}</b>${esc(desc)}`;el.style.left=u+"%";el.style.top=v/60*100+"%";
+  }
+}
+
+// ---------------------------------------------------------------- input lifecycle and startup
+function resolutionChanged(){needsResize=true;requestDraw();}
+function releaseInput(){activePointers.clear();activeKeys.clear();resolutionChanged();}
+function watchDPR() {
+  if(resolutionQuery)resolutionQuery.removeEventListener("change",onDPRChange);
+  resolutionQuery=matchMedia(`(resolution: ${window.devicePixelRatio||1}dppx)`);resolutionQuery.addEventListener("change",onDPRChange);
+}
+function onDPRChange(){watchDPR();resize();}
+addEventListener("pointerdown",e=>{activePointers.add(e.pointerId);resolutionChanged();},{passive:true,capture:true});
+addEventListener("pointerup",e=>{activePointers.delete(e.pointerId);resolutionChanged();},{passive:true,capture:true});
+addEventListener("pointercancel",e=>{activePointers.delete(e.pointerId);resolutionChanged();},{passive:true,capture:true});
+addEventListener("lostpointercapture",e=>{activePointers.delete(e.pointerId);resolutionChanged();},{passive:true,capture:true});
+addEventListener("keydown",e=>{
+  if(!e.metaKey&&!e.ctrlKey&&!e.altKey){activeKeys.add(e.code||e.key);resolutionChanged();}
+  // Native ranges, text fields, buttons, details and editable regions keep their own keyboard behavior.
+  if(e.metaKey||e.ctrlKey||e.altKey||e.target.closest?.("input,textarea,select,button,summary,a,[contenteditable]:not([contenteditable=false])"))return;
+  if(e.key==="ArrowRight"){e.preventDefault();setPlaying(false);nextStep();}
+  else if(e.key==="ArrowLeft"){e.preventDefault();setPlaying(false);prevStep();}
+  else if(e.key===" "&&!e.repeat){e.preventDefault();setPlaying(!playing);}
+});
+addEventListener("keyup",e=>{activeKeys.delete(e.code||e.key);resolutionChanged();},{capture:true});
+addEventListener("blur",()=>{releaseInput();setPlaying(false);});
+document.addEventListener("visibilitychange",()=>{releaseInput();anim.last=0;if(document.hidden){cancelAnimationFrame(anim.raf);drawQueued=false;setPlaying(false);}else requestDraw();});
+addEventListener("resize",resize);
+new ResizeObserver(entries=>{const r=entries[0].contentRect;if(Math.abs(r.width-lastBoxWidth)>.5||Math.abs(r.height-lastBoxHeight)>.5)resize();}).observe($("pic"));
+motionQuery.addEventListener("change",e=>{reduced=e.matches;anim.p=1;anim.last=0;if(playing)setPlaying(true);requestDraw();});
+$("quality").addEventListener("click",()=>{forcedDraft=!forcedDraft;resolutionChanged();});
+$("timeline").max=moments.length-1;
+$("timeline").addEventListener("input",e=>{setPlaying(false);const[s,t]=moments[Number(e.target.value)];go(s,t);});
+const labels=["Signed event","Bus recovery","Safe retries","Forged event","Private channel"];
+TRACE.scenes.forEach((sc,i)=>{const b=document.createElement("button");b.type="button";b.title=sc.title;b.setAttribute("aria-label",`${i+1}. ${sc.title}`);b.innerHTML=`<span class="num">${String(i+1).padStart(2,"0")}</span>${labels[i]}`;b.addEventListener("click",()=>{setPlaying(false);go(i,0);});$("scenes").appendChild(b);});
+$("prev").addEventListener("click",()=>{setPlaying(false);prevStep();});
+$("next").addEventListener("click",()=>{setPlaying(false);nextStep();});
+$("play").addEventListener("click",()=>setPlaying(!playing));
+$("all").addEventListener("click",verifyAll);$("lie").addEventListener("click",testChecker);
+$("when").textContent=new Date(TRACE.recorded_at).toISOString().slice(0,16).replace("T"," ")+" UTC";
+$("when").dateTime=TRACE.recorded_at;
+const {sig:_signature,...firstUnsigned}=TRACE.scenes[0].steps[0].envelope;
+selftestOK=jcs(firstUnsigned)===TRACE.jcs_selftest.canonical;
+if(!selftestOK){const p=document.createElement("p");p.className="selftest-error";p.setAttribute("role","alert");p.textContent="This page failed its canonical JSON self-check. Signature verification has been disabled.";document.body.prepend(p);}
+canvas.style.transition="opacity 180ms ease";
+watchDPR();go(0,0);resize();invariantTick();setInterval(invariantTick,1200);
+})();
+</script>
+</body>
+</html>
